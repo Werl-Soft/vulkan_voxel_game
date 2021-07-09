@@ -15,7 +15,7 @@ This is some early tests for a game I want to make.
 
 And much more
 ## Libraries Used
-* [GLFW 3.3](https://www.glfw.org/)
-* [spdlog 1.4.2](https://github.com/gabime/spdlog)
+* [GLFW 3.3.4](https://www.glfw.org/)
+* [spdlog 1.8.5](https://github.com/gabime/spdlog)
 * [Vulkan](https://www.khronos.org/vulkan/)
-* [boost 1.71](https://www.boost.org/)
+* [boost 1.76](https://www.boost.org/)

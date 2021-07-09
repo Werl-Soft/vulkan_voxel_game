@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.15)
 project(Basic_Tests)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 
 # Find Vulkan
 find_package(Vulkan REQUIRED)
@@ -17,7 +17,7 @@ add_subdirectory(libs/glfw)
 add_subdirectory(libs/spdlog)
 
 # Find Boost
-find_package(Boost 1.66 REQUIRED COMPONENTS system container)
+#find_package(Boost 1.76 REQUIRED COMPONENTS system container)
 
 # Find GLM
 include_directories(libs/glm)
