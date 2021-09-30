@@ -9,7 +9,7 @@ This is some early tests for a game I want to make.
 - [ ] Physics: Simple random terrain with collisions
 - [ ] Rendering: Mobile camera
 - [ ] Physics: Camera collisions
-- [ ] Terrain: Voxel ([Transvoxel algorithm](http://transvoxel.org/))?
+- [ ] Terrain: Voxel
 - [ ] Terrain: Semi infinite terrain
 - [ ] Terrain: Runtime mesh modification
 
