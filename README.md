@@ -3,8 +3,8 @@ This is some early tests for a game I want to make.
 ## Progress
 - [ ] Rendering: Simple rendering
 - [ ] Engine: Spacial Awareness
-- [ ] Physics: Gravity
 - [ ] Physics: Collisions
+- [ ] Physics: Gravity
 - [ ] Terrain: Simple random terrain
 - [ ] Physics: Simple random terrain with collisions
 - [ ] Rendering: Mobile camera
