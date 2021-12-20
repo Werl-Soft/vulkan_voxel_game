@@ -16,5 +16,6 @@ This is some early tests for a game I want to make.
 And much more
 ## Libraries Used
 * [GLFW 3.3.4](https://www.glfw.org/)
+* [GLM 0.9.9.8](https://github.com/g-truc/glm)
 * [spdlog 1.9.2](https://github.com/gabime/spdlog)
-* [Vulkan](https://www.khronos.org/vulkan/): Tested with SDK 1.2.154.1
+* [Vulkan](https://www.khronos.org/vulkan/): Tested with SDK 1.2.198.1

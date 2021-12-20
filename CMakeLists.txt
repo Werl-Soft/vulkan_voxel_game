@@ -19,6 +19,8 @@ add_subdirectory(libs/spdlog)
 # Find Boost
 #find_package(Boost 1.76 REQUIRED COMPONENTS system container)
 
+add_subdirectory(assets)
+
 # Find GLM
 include_directories(libs/glm)
 
