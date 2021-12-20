@@ -707,9 +707,9 @@ private:
         vk::Result resultPresent;
         try {
             resultPresent = presentQueue.presentKHR(presentInfo);
-        } catch (vk::OutOfDateKHRError err) {
+        } catch (vk::OutOfDateKHRError &err) {
             resultPresent = vk::Result::eErrorOutOfDateKHR;
-        } catch (vk::SystemError err) {
+        } catch (vk::SystemError &err) {
             throw std::runtime_error("failed to present swap chain image!");
         }
 
