@@ -24,7 +24,7 @@ add_subdirectory(assets)
 # Find GLM
 include_directories(libs/glm)
 
-add_executable(Basic_Tests src/main.cpp)
+add_executable(Basic_Tests src/main.cpp src/vulkan_helpers.cpp src/vulkan_helpers.hpp src/file_loader.cpp src/file_loader.hpp)
 
 target_link_libraries(Basic_Tests PUBLIC Vulkan::Vulkan)
 target_link_libraries(Basic_Tests PUBLIC glfw)
