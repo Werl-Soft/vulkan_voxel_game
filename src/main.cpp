@@ -1071,7 +1071,7 @@ int main(int argc, char* argv[])
     game::HelloTriangleApplication app;
 
     auto consoleSink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-    consoleSink->set_level (spdlog::level::warn);
+    consoleSink->set_level (spdlog::level::info);
 
     auto max_size = 1048576 * 50;
     auto fileSink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>("logs/log.txt", max_size, 5, true);
