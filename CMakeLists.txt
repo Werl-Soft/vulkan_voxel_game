@@ -22,7 +22,15 @@ add_subdirectory(libs/spdlog)
 # Find GLM
 include_directories(libs/glm)
 
-add_executable(Basic_Tests src/main.cpp src/vulkan_helpers.cpp src/vulkan_helpers.hpp src/file_loader.cpp src/file_loader.hpp)
+if(WIN32)
+    set($<$<CONFIG:Release>:BUILD_ARGS = WIN32>)
+endif(WIN32)
+
+add_executable(Basic_Tests ${BUILD_ARGS} src/main.cpp src/vulkan_helpers.cpp src/vulkan_helpers.hpp src/file_loader.cpp src/file_loader.hpp)
+
+if(WIN32)
+    target_compile_definitions(Basic_Tests PUBLIC $<$<CONFIG:Release>:USE_WIN32>)
+endif(WIN32)
 
 target_link_libraries(Basic_Tests PUBLIC Vulkan::Vulkan)
 target_link_libraries(Basic_Tests PUBLIC glfw)

@@ -1060,7 +1060,14 @@ namespace game {
     };
 }
 
-int main(int argc, char* argv[]) {
+#ifdef USE_WIN32
+#include <windows.h>
+
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine, INT nCmdShow)
+#else
+int main(int argc, char* argv[])
+#endif
+{
     game::HelloTriangleApplication app;
 
     auto consoleSink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
