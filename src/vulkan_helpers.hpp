@@ -43,7 +43,7 @@ namespace game::vk_helpers {
 
     vk::SurfaceFormatKHR chooseSwapSurfaceFormat (const std::vector<vk::SurfaceFormatKHR> &availableFormats);
 
-    vk::PresentModeKHR chooseSwapPresentMode (std::vector<vk::PresentModeKHR> availablePresentModes);
+    vk::PresentModeKHR chooseSwapPresentMode (const std::vector<vk::PresentModeKHR>& availablePresentModes);
 
     vk::Extent2D chooseSwapExtent (const vk::SurfaceCapabilitiesKHR &capabilities, GLFWwindow *window, int *width, int *height);
 
@@ -59,9 +59,14 @@ namespace game::vk_helpers {
 
     bool checkValidationLayerSupport ();
 
-    vk::UniqueShaderModule createShaderModule (std::string path, vk::UniqueDevice &device);
+    vk::UniqueShaderModule createShaderModule (const std::string& path, vk::UniqueDevice &device);
 
     uint32_t findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties, vk::PhysicalDevice device);
+
+    void createBuffer(vk::DeviceSize size, vk::Flags<vk::BufferUsageFlagBits> usage, vk::Flags<vk::MemoryPropertyFlagBits> properties, vk::Buffer& buffer, vk::DeviceMemory& bufferMemory, vk::UniqueDevice &device,
+                      vk::PhysicalDevice &physicalDevice);
+
+    void copyBuffer(vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize size, vk::CommandPool commandPool, vk::UniqueDevice &device, vk::Queue graphicsQueue);
 }
 
 #endif //BASIC_TESTS_VULKAN_HELPERS_HPP

@@ -20,7 +20,7 @@ vk::SurfaceFormatKHR game::vk_helpers::chooseSwapSurfaceFormat (const std::vecto
     return availableFormats[0];
 }
 
-vk::PresentModeKHR game::vk_helpers::chooseSwapPresentMode (const std::vector<vk::PresentModeKHR> availablePresentModes) {
+vk::PresentModeKHR game::vk_helpers::chooseSwapPresentMode (const std::vector<vk::PresentModeKHR>& availablePresentModes) {
     vk::PresentModeKHR bestMode = vk::PresentModeKHR::eFifo;
 
     for (const auto& availablePresentMode : availablePresentModes) {
@@ -63,7 +63,7 @@ bool game::vk_helpers::isDeviceSuitable (vk::PhysicalDevice device, vk::SurfaceK
 
     bool extensionsSupported = checkDeviceExtensionSupport(device);
 
-    bool swapChainAdequate = false;
+    bool swapChainAdequate;
     if (extensionsSupported) {
         SwapChainSupportDetails swapChainSupport = querySwapChainSupport (device, surface);
         swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
@@ -137,7 +137,7 @@ bool game::vk_helpers::checkValidationLayerSupport () {
     return true;
 }
 
-vk::UniqueShaderModule game::vk_helpers::createShaderModule (std::string path, vk::UniqueDevice &device) {
+vk::UniqueShaderModule game::vk_helpers::createShaderModule (const std::string& path, vk::UniqueDevice &device) {
     auto code = file_loader::readFile (path);
 
     try {
@@ -158,4 +158,70 @@ uint32_t game::vk_helpers::findMemoryType (uint32_t typeFilter, vk::MemoryProper
     }
     spdlog::get ("main_out")->critical ("Failed to find suitable memory type!");
     throw std::runtime_error("Failed to find suitable memory type!");
+}
+
+void game::vk_helpers::createBuffer (vk::DeviceSize size,
+                                     vk::Flags<vk::BufferUsageFlagBits> usage,
+                                     vk::Flags<vk::MemoryPropertyFlagBits> properties,
+                                     vk::Buffer &buffer,
+                                     vk::DeviceMemory &bufferMemory,
+                                     vk::UniqueDevice &device,
+                                     vk::PhysicalDevice &physicalDevice) {
+    vk::BufferCreateInfo bufferInfo = {};
+    bufferInfo.usage = usage;
+    bufferInfo.size = size;
+    bufferInfo.sharingMode = vk::SharingMode::eExclusive;
+
+    try {
+        buffer = device->createBuffer (bufferInfo);
+    } catch (vk::SystemError &err) {
+        spdlog::get ("main_out")->critical ("Failed to create buffer: {}", err.what());
+        throw std::runtime_error ("Failed to create buffer!");
+    }
+
+    auto memRequirements = device->getBufferMemoryRequirements (buffer);
+
+    vk::MemoryAllocateInfo memInfo = {};
+    memInfo.allocationSize = memRequirements.size;
+    memInfo.memoryTypeIndex = vk_helpers::findMemoryType (memRequirements.memoryTypeBits, properties, physicalDevice);
+    try{
+        bufferMemory = device->allocateMemory (memInfo);
+    } catch (vk::SystemError &err) {
+        spdlog::get ("main_out")->critical ("Failed to allocate buffer memory; {}", err.what());
+        throw std::runtime_error("Failed to allocate vertex memory!");
+    }
+
+    device->bindBufferMemory (buffer, bufferMemory, 0);
+}
+
+void game::vk_helpers::copyBuffer (vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize size, vk::CommandPool commandPool, vk::UniqueDevice &device, vk::Queue graphicsQueue) {
+    vk::CommandBufferAllocateInfo allocInfo = {};
+    allocInfo.level = vk::CommandBufferLevel::ePrimary;
+    allocInfo.commandPool = commandPool;
+    allocInfo.commandBufferCount = 1;
+
+    auto commandBuffer = device->allocateCommandBuffers (allocInfo);
+
+    vk::CommandBufferBeginInfo beginInfo = {};
+    beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
+
+    commandBuffer[0].begin (beginInfo);
+    {
+        vk::BufferCopy copyRegion = {};
+        copyRegion.srcOffset = 0;
+        copyRegion.dstOffset = 0;
+        copyRegion.size = size;
+
+        commandBuffer[0].copyBuffer (srcBuffer, dstBuffer, 1, &copyRegion);
+    }
+    commandBuffer[0].end ();
+
+    vk::SubmitInfo submitInfo = {};
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = commandBuffer.data();
+
+    graphicsQueue.submit (submitInfo, nullptr);
+    graphicsQueue.waitIdle ();
+
+    device->freeCommandBuffers (commandPool, commandBuffer);
 }

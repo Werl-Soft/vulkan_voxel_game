@@ -4,7 +4,9 @@
 #include <GLFW/glfw3.h>
 
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 #include "spdlog/spdlog.h"
 #include "spdlog/sinks/stdout_color_sinks.h"
@@ -16,6 +18,7 @@
 #include <optional>
 #include <set>
 #include <memory>
+#include <chrono>
 
 #include "vulkan_helpers.hpp"
 #include "spdlog/sinks/basic_file_sink.h"
@@ -60,14 +63,26 @@ namespace game {
     };
 
     const std::vector<Vertex> vertices = {
-            {{0.0f,   - 0.5f}, {1.0f, 0.0f, 0.0f}},
-            {{0.5f,   0.5f},   {0.0f, 1.0f, 0.0f}},
-            {{- 0.5f, 0.5f},   {0.0f, 0.0f, 1.0f}}
+            {{-0.5f, - 0.5f}, {1.0f, 0.0f, 0.0f}},
+            {{0.5f, -0.5f},   {0.0f, 1.0f, 0.0f}},
+            {{-0.5f, 0.5f},   {1.0f, 1.0f, 1.0f}},
+            {{0.5f, 0.5f},    {0.0f, 0.0f, 1.0f,}}
+    };
+
+    const std::vector<uint16_t> indices = {
+            0, 1, 2, 2, 1, 3
+    };
+
+    struct UniformBufferObject {
+        glm::mat4 model;
+        glm::mat4 view;
+        glm::mat4 proj;
     };
 
     class HelloTriangleApplication {
     public:
         void run () {
+            logger = spdlog::get ("main_out");
             initWindow ();
             initVulkan ();
             mainLoop ();
@@ -78,6 +93,7 @@ namespace game {
         // Misc
         std::string appName = "Hello Triangle";
         std::string engineName = "Werlsoft Engine";
+        std::shared_ptr<spdlog::logger> logger;
 
         // Window
         GLFWwindow *window{};
@@ -105,6 +121,7 @@ namespace game {
         std::vector<vk::ImageView> swapChainImageViews;
 
         vk::RenderPass renderPass;
+        vk::DescriptorSetLayout descriptorSetLayout;
         vk::PipelineLayout pipelineLayout;
         vk::Pipeline graphicsPipeline;
 
@@ -120,12 +137,22 @@ namespace game {
 
         vk::Buffer vertexBuffer;
         vk::DeviceMemory vertexBufferMemory;
+        vk::Buffer indexBuffer;
+        vk::DeviceMemory indexBufferMemory;
+
+        std::vector<vk::Buffer> uniformBuffers;
+        std::vector<vk::DeviceMemory> uniformBufferMemory;
+
+        vk::DescriptorPool descriptorPool;
+        std::vector<vk::DescriptorSet> descriptorSets;
 
     public:
         bool frameBufferResized = false;
 
     private:
         void initWindow () {
+            logger->info ("Starting: GLFW Initialization");
+
             glfwInit ();
 
             glfwWindowHint (GLFW_CLIENT_API, GLFW_NO_API);
@@ -133,6 +160,8 @@ namespace game {
             window = glfwCreateWindow (width, height, "Vulkan", nullptr, nullptr);
             glfwSetWindowUserPointer (window, this);
             glfwSetFramebufferSizeCallback (window, frameBufferResizeCallback);
+
+            logger->info ("Finished: GLFW Initialization");
         }
 
         static void frameBufferResizeCallback (GLFWwindow *window, int width, int height) {
@@ -141,6 +170,7 @@ namespace game {
         }
 
         void initVulkan () {
+            logger->info ("Starting: Vulkan Initialization");
             createInstance ();
             setupDebugCallback ();
             createSurface ();
@@ -149,24 +179,35 @@ namespace game {
             createSwapChain ();
             createImageViews ();
             createRenderPass ();
+            createDescriptorSetLayout();
             createGraphicsPipeline ();
             createFrameBuffers ();
             createCommandPool ();
             createVertexBuffer ();
+            createIndexBuffer();
+            createUniformBuffers();
+            createDescriptorPool();
+            createDescriptorSets();
             createCommandBuffers ();
             createSyncObjects ();
+
+            logger->info ("Finished: Vulkan Initialization");
         }
 
         void mainLoop () {
+            logger->info ("Starting: Main Loop");
             while (! glfwWindowShouldClose (window)) {
                 glfwPollEvents ();
                 drawFrame ();
             }
 
             device->waitIdle ();
+            logger->info ("Finished: Main Loop");
         }
 
         void cleanupSwapChain () {
+            logger->info ("Starting: Swap Chain Cleanup");
+
             for (auto frameBuffer: swapChainFrameBuffers) {
                 device->destroyFramebuffer (frameBuffer);
             }
@@ -181,14 +222,29 @@ namespace game {
                 device->destroyImageView (imageView);
             }
             device->destroySwapchainKHR (swapChain);
+
+            for (size_t i = 0; i < swapChainImages.size(); i++) {
+                device->destroyBuffer (uniformBuffers[i]);
+                device->freeMemory (uniformBufferMemory[i]);
+            }
+
+            device->destroyDescriptorPool (descriptorPool);
+
+            logger->info ("Finished: Swap Chain Cleanup");
         }
 
         void cleanup () {
             // NOTE: instance destruction is handled by UniqueInstance, same for device
+            logger->info ("Starting: Cleanup");
 
             cleanupSwapChain ();
 
+            device->destroyDescriptorSetLayout (descriptorSetLayout);
+
             device->destroyBuffer (vertexBuffer);
+            device->freeMemory (vertexBufferMemory);
+            device->destroyBuffer (indexBuffer);
+            device->freeMemory (indexBufferMemory);
 
             for (size_t i = 0; i < maxFramesInFlight; i ++) {
                 device->destroySemaphore (renderFinishedSemaphores[i]);
@@ -203,6 +259,8 @@ namespace game {
 
             glfwDestroyWindow (window);
             glfwTerminate ();
+
+            logger->info ("Finished: Cleanup");
         }
 
         /****************
@@ -212,6 +270,7 @@ namespace game {
          * Creates the Vulkan Instance
          */
         void recreateSwapChain () {
+            logger->info ("Starting: Swap Chain Recreation");
             width = 0;
             height = 0;
             while (width == 0 || height == 0) {
@@ -228,11 +287,18 @@ namespace game {
             createRenderPass ();
             createGraphicsPipeline ();
             createFrameBuffers ();
+            createUniformBuffers();
+            createDescriptorPool();
+            createDescriptorSets();
             createCommandBuffers ();
+
+            logger->info ("Finished: Swap Chain Recreation");
         }
 
         void createInstance () {
+            logger->info ("Starting: Vulkan Instance Creation");
             if (vk_helpers::enableValidationLayers && ! vk_helpers::checkValidationLayerSupport ()) {
+                logger->critical ("Validation layers requested, but not available!");
                 throw std::runtime_error ("Validation layers requested, but not available!");
             }
 
@@ -259,29 +325,37 @@ namespace game {
             try {
                 instance = vk::createInstanceUnique (createInfo, nullptr);
             } catch (vk::SystemError &err) {
+                logger->critical ("Failed to create instance: {}", err.what());
                 throw std::runtime_error ("Failed to create instance");
             }
 
-            spdlog::get ("console")->info ("Available Extensions:");
+            logger->info ("Available Extensions:");
 
             for (const auto &extension: vk::enumerateInstanceExtensionProperties ()) {
-                spdlog::get ("console")->info ("\t {}", extension.extensionName);
+                logger->info ("\t {}", extension.extensionName);
             }
 
             dld = vk::DispatchLoaderDynamic (instance->operator VkInstance_T * (), vkGetInstanceProcAddr);
+
+            logger->info ("Finished: Vulkan Instance Creation");
         }
 
         void createSurface () {
+            logger->info ("Starting: Vulkan Surface Creation");
             VkSurfaceKHR rawSurface;
             if (glfwCreateWindowSurface (instance->operator VkInstance_T * (), window, nullptr, &rawSurface) != VK_SUCCESS) {
+                logger->critical ("Failed to create window surface!");
                 throw std::runtime_error ("Failed to create window surface!");
             }
             surface = static_cast<vk::SurfaceKHR>(rawSurface);
+
+            logger->info ("Finished: Vulkan Surface Creation");
         }
 
         void setupDebugCallback () {
             if (! vk_helpers::enableValidationLayers)
                 return;
+            logger->info ("Starting: Debug Callback Creation");
 
             auto createInfo = vk::DebugUtilsMessengerCreateInfoEXT (
                     vk::DebugUtilsMessengerCreateFlagsEXT (),
@@ -295,12 +369,16 @@ namespace game {
             }*/
 
             instance->createDebugUtilsMessengerEXTUnique (createInfo, nullptr, dld);
+
+            logger->info ("Finished: Debug Callback Creation");
         }
 
         void pickPhysicalDevice () {
+            logger->info ("Starting: Choose Physical Device");
             auto devices = instance->enumeratePhysicalDevices ();
             if (devices.empty ()) {
-                throw std::runtime_error ("failed to find GPUs with Vulkan support!");
+                logger->critical ("Failed to find GPUs with Vulkan support!");
+                throw std::runtime_error ("Failed to find GPUs with Vulkan support!");
             }
 
             for (const auto &d: devices) {
@@ -311,11 +389,15 @@ namespace game {
             }
 
             if (! physicalDevice) {
-                throw std::runtime_error ("failed to find a suitable GPU!");
+                logger->critical ("Failed to find a suitable GPU!");
+                throw std::runtime_error ("Failed to find a suitable GPU!");
             }
+
+            logger->info ("Finished: Choose Physical Device");
         }
 
         void createLogicalDevice () {
+            logger->info ("Starting: Logical Device Creation");
             vk_helpers::QueueFamilyIndices indices = vk_helpers::findQueueFamilies (physicalDevice, surface);
 
             std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
@@ -345,14 +427,18 @@ namespace game {
             try {
                 device = physicalDevice.createDeviceUnique (createInfo);
             } catch (vk::SystemError &err) {
+                logger->critical ("Failed to create logical device: {}", err.what());
                 throw std::runtime_error ("failed to create logical device!");
             }
 
             graphicsQueue = device->getQueue (indices.graphicsFamily.value (), 0);
             presentQueue = device->getQueue (indices.presentFamily.value (), 0);
+
+            logger->info ("Finished: Logical Device Creation");
         }
 
         void createSwapChain () {
+            logger->info ("Starting: Swap Chain Creation");
             vk_helpers::SwapChainSupportDetails swapChainSupport = vk_helpers::querySwapChainSupport (physicalDevice, surface);
 
             vk::SurfaceFormatKHR surfaceFormat = vk_helpers::chooseSwapSurfaceFormat (swapChainSupport.formats);
@@ -396,6 +482,7 @@ namespace game {
                 swapChain = device->createSwapchainKHR (createInfo);
             }
             catch (vk::SystemError &err) {
+                logger->critical ("Failed to create swap chain: {}", err.what());
                 throw std::runtime_error ("failed to create swap chain!");
             }
 
@@ -403,9 +490,11 @@ namespace game {
 
             swapChainImageFormat = surfaceFormat.format;
             swapChainExtent = extent;
+            logger->info ("Finished: Swap Chain Creation");
         }
 
         void createImageViews () {
+            logger->info ("Starting: Image View Creation");
             swapChainImageViews.resize (swapChainImages.size ());
 
             for (size_t i = 0; i < swapChainImages.size (); i ++) {
@@ -427,12 +516,16 @@ namespace game {
                     swapChainImageViews[i] = device->createImageView (createInfo);
                 }
                 catch (vk::SystemError &err) {
+                    logger->critical ("Failed to create image views: {}", err.what());
                     throw std::runtime_error ("failed to create image views!");
                 }
             }
+            logger->info ("Finished: Image View Creation");
         }
 
         void createRenderPass () {
+            logger->info ("Starting: Render Pass Creation");
+
             vk::AttachmentDescription colorAttachment = {};
             colorAttachment.format = swapChainImageFormat;
             colorAttachment.samples = vk::SampleCountFlagBits::e1;
@@ -471,11 +564,35 @@ namespace game {
             try {
                 renderPass = device->createRenderPass (renderPassInfo);
             } catch (vk::SystemError &err) {
+                logger->critical("Failed to create render pass: {}", err.what());
                 throw std::runtime_error ("Failed to create render pass!");
+            }
+            logger->info ("Finished: Render Pass Creation");
+        }
+
+        void createDescriptorSetLayout() {
+            vk::DescriptorSetLayoutBinding uboLayoutBinding = {};
+            uboLayoutBinding.binding = 0;
+            uboLayoutBinding.descriptorType = vk::DescriptorType::eUniformBuffer;
+            uboLayoutBinding.descriptorCount = 1;
+            uboLayoutBinding.stageFlags = vk::ShaderStageFlagBits::eVertex;
+            uboLayoutBinding.pImmutableSamplers = nullptr;
+
+            vk::DescriptorSetLayoutCreateInfo layoutInfo = {};
+            layoutInfo.bindingCount = 1;
+            layoutInfo.pBindings = &uboLayoutBinding;
+
+            try {
+                descriptorSetLayout = device->createDescriptorSetLayout (layoutInfo);
+            } catch (vk::SystemError &err) {
+                logger->critical ("Failed to create descriptor set layout: {}", err.what());
+                throw std::runtime_error("Failed to create descriptor set layout");
             }
         }
 
         void createGraphicsPipeline () {
+            logger->info ("Starting: Graphics Pipeline Creation");
+
             auto vertShaderModule = vk_helpers::createShaderModule ("assets/shaders/vert.spv", device);
             auto fragShaderModule = vk_helpers::createShaderModule ("assets/shaders/frag.spv", device);
 
@@ -531,7 +648,7 @@ namespace game {
             rasterizer.polygonMode = vk::PolygonMode::eFill;
             rasterizer.lineWidth = 1.0f;
             rasterizer.cullMode = vk::CullModeFlagBits::eBack;
-            rasterizer.frontFace = vk::FrontFace::eClockwise;
+            rasterizer.frontFace = vk::FrontFace::eCounterClockwise;
             rasterizer.depthBiasEnable = VK_FALSE;
 
             vk::PipelineMultisampleStateCreateInfo multisampling{};
@@ -553,13 +670,15 @@ namespace game {
             colorBlending.blendConstants[3] = 0.0f;
 
             vk::PipelineLayoutCreateInfo pipelineLayoutInfo = {};
-            pipelineLayoutInfo.setLayoutCount = 0;
+            pipelineLayoutInfo.setLayoutCount = 1;
+            pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
             pipelineLayoutInfo.pushConstantRangeCount = 0;
 
             try {
                 pipelineLayout = device->createPipelineLayout (pipelineLayoutInfo);
             } catch (vk::SystemError &err) {
-                throw std::runtime_error ("failed to create pipeline layout!");
+                logger->critical ("Failed to create pipeline layout: {}", err.what());
+                throw std::runtime_error ("Failed to create pipeline layout!");
             }
 
             vk::GraphicsPipelineCreateInfo pipelineInfo{};
@@ -580,11 +699,15 @@ namespace game {
                 graphicsPipeline = device->createGraphicsPipeline (nullptr, pipelineInfo).value;
             }
             catch (vk::SystemError &err) {
+                logger->critical ("Failed to create graphics pipeline: {}", err.what());
                 throw std::runtime_error ("failed to create graphics pipeline!");
             }
+            logger->info ("Finished: Graphics Pipeline Creation");
         }
 
         void createFrameBuffers () {
+            logger->info ("Starting: Frame Buffer Creation");
+
             swapChainFrameBuffers.resize (swapChainImageViews.size ());
 
             for (size_t i = 0; i < swapChainImageViews.size (); i ++) {
@@ -603,12 +726,17 @@ namespace game {
                 try {
                     swapChainFrameBuffers[i] = device->createFramebuffer (framebufferCreateInfo);
                 } catch (vk::SystemError &err) {
-                    throw std::runtime_error ("failed to create frame buffer");
+                    logger->critical ("Failed to create frame buffer: {}", err.what());
+                    throw std::runtime_error ("Failed to create frame buffer");
                 }
             }
+
+            logger->info ("Finished: Frame Buffer Creation");
         }
 
         void createCommandPool () {
+            logger->info ("Starting: Command Pool Creation");
+
             vk_helpers::QueueFamilyIndices queueFamilyIndices = vk_helpers::findQueueFamilies (physicalDevice, surface);
 
             vk::CommandPoolCreateInfo poolInfo = {};
@@ -617,37 +745,147 @@ namespace game {
             try {
                 commandPool = device->createCommandPool (poolInfo);
             } catch (vk::SystemError &err) {
+                logger->critical ("Failed to create command pool: {}", err.what());
                 throw std::runtime_error ("Failed to create command pool!");
             }
+
+            logger->info ("Finished: Command Pool Creation");
         }
 
         void createVertexBuffer () {
-            vk::BufferCreateInfo bufferInfo = {};
-            bufferInfo.usage = vk::BufferUsageFlagBits::eVertexBuffer;
-            bufferInfo.size = sizeof (vertices[0]) * vertices.size ();
-            bufferInfo.sharingMode = vk::SharingMode::eExclusive;
+            logger->info ("Starting: Vertex Buffer Creation");
 
-            try {
-                device->createBuffer (bufferInfo);
-            } catch (vk::SystemError &err) {
-                throw std::runtime_error ("Failed to create vertex buffer!");
+            vk::DeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
+
+            vk::Buffer stagingBuffer;
+            vk::DeviceMemory stagingBufferMemory;
+            vk_helpers::createBuffer (bufferSize, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
+                                      stagingBuffer, stagingBufferMemory, device, physicalDevice);
+
+            void* data = device->mapMemory (stagingBufferMemory, 0, bufferSize);
+            {
+                memcpy (data, vertices.data (), bufferSize);
+            }
+            device->unmapMemory (stagingBufferMemory);
+
+            vk_helpers::createBuffer (bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
+                                      vertexBuffer, vertexBufferMemory, device, physicalDevice);
+
+            vk_helpers::copyBuffer (stagingBuffer, vertexBuffer, bufferSize, commandPool, device, graphicsQueue);
+
+            device->destroyBuffer (stagingBuffer);
+            device->freeMemory (stagingBufferMemory);
+
+            logger->info ("Finished: Vertex Buffer Creation");
+        }
+
+        void createIndexBuffer() {
+            logger->info ("Starting: Index Buffer Creation");
+
+            vk::DeviceSize bufferSize = sizeof(indices[0]) * indices.size();
+
+            vk::Buffer stagingBuffer;
+            vk::DeviceMemory stagingBufferMemory;
+            vk_helpers::createBuffer (bufferSize, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
+                                      stagingBuffer, stagingBufferMemory, device, physicalDevice);
+
+            void* data = device->mapMemory (stagingBufferMemory, 0, bufferSize);
+            {
+                memcpy (data, indices.data (), bufferSize);
+            }
+            device->unmapMemory (stagingBufferMemory);
+
+            vk_helpers::createBuffer (bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
+                                      indexBuffer, indexBufferMemory, device, physicalDevice);
+
+            vk_helpers::copyBuffer (stagingBuffer, indexBuffer, bufferSize, commandPool, device, graphicsQueue);
+
+            device->destroyBuffer (stagingBuffer);
+            device->freeMemory (stagingBufferMemory);
+
+            logger->info ("Finished: Index Buffer Creation");
+        }
+
+        void createUniformBuffers() {
+            logger->info ("Starting: Uniform Buffer Creation");
+
+            vk::DeviceSize bufferSize = sizeof(UniformBufferObject);
+
+            uniformBuffers.resize(swapChainImages.size());
+            uniformBufferMemory.resize (swapChainImages.size());
+
+            for (size_t i = 0; i < swapChainImages.size(); i++) {
+                vk_helpers::createBuffer (bufferSize, vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
+                                          uniformBuffers[i], uniformBufferMemory[i], device, physicalDevice);
             }
 
-            auto memRequiremest = device->getBufferMemoryRequirements (vertexBuffer);
+            logger->info ("Finished: Uniform Buffer Creation");
+        }
 
-            vk::MemoryAllocateInfo memInfo = {};
-            memInfo.allocationSize = memRequiremest.size;
-            memInfo.memoryTypeIndex = vk_helpers::findMemoryType (memRequiremest.memoryTypeBits,
-                                                                  vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,physicalDevice);
+        void createDescriptorPool() {
+            logger->info ("Starting: Descriptor Pool Creation");
+
+            vk::DescriptorPoolSize poolSize = {};
+            poolSize.type = vk::DescriptorType::eUniformBuffer;
+            poolSize.descriptorCount = static_cast<uint32_t>(swapChainImages.size());
+
+            vk::DescriptorPoolCreateInfo poolInfo = {};
+            poolInfo.poolSizeCount = 1;
+            poolInfo.pPoolSizes = &poolSize;
+            poolInfo.maxSets = static_cast<uint32_t>(swapChainImages.size());
+
             try{
-                vertexBufferMemory = device->allocateMemory (memInfo);
+                descriptorPool = device->createDescriptorPool (poolInfo);
             } catch (vk::SystemError &err) {
-
+                logger->critical ("Failed to create descriptor pool: {}", err.what());
+                throw std::runtime_error("Failed to create descriptor pool");
             }
 
+            logger->info ("Finished: Descriptor Pool Creation");
+        }
+
+        void createDescriptorSets() {
+            logger->info ("Starting: Descriptor Set Creation");
+
+            std::vector<vk::DescriptorSetLayout> layouts(swapChainImages.size(), descriptorSetLayout);
+            vk::DescriptorSetAllocateInfo allocInfo = {};
+            allocInfo.descriptorPool = descriptorPool;
+            allocInfo.descriptorSetCount = static_cast<uint32_t>(swapChainImages.size());
+            allocInfo.pSetLayouts = layouts.data();
+
+            descriptorSets.resize (swapChainImages.size());
+            try {
+                descriptorSets = device->allocateDescriptorSets (allocInfo);
+            } catch (vk::SystemError &err) {
+                logger->critical ("Failed to allocate descriptor sets: {}", err.what());
+                throw std::runtime_error("failed to allocate descriptor sets!");
+            }
+
+            for (size_t i = 0; i < swapChainImages.size(); i++) {
+                vk::DescriptorBufferInfo bufferInfo = {};
+                bufferInfo.buffer = uniformBuffers[i];
+                bufferInfo.offset = 0;
+                bufferInfo.range = sizeof (UniformBufferObject);
+
+                vk::WriteDescriptorSet descriptorWriter = {};
+                descriptorWriter.dstSet = descriptorSets[i];
+                descriptorWriter.dstBinding = 0;
+                descriptorWriter.dstArrayElement = 0;
+                descriptorWriter.descriptorType = vk::DescriptorType::eUniformBuffer;
+                descriptorWriter.descriptorCount = 1;
+                descriptorWriter.pBufferInfo = &bufferInfo;
+                descriptorWriter.pImageInfo = nullptr;
+                descriptorWriter.pTexelBufferView = nullptr;
+
+                device->updateDescriptorSets (1, &descriptorWriter, 0, nullptr);
+            }
+
+            logger->info ("Finished: Descriptor Set Creation");
         }
 
         void createCommandBuffers () {
+            logger->info ("Starting: Command Buffer Creation");
+
             commandBuffers.resize (swapChainFrameBuffers.size ());
 
             vk::CommandBufferAllocateInfo allocateInfo = {};
@@ -658,6 +896,7 @@ namespace game {
             try {
                 commandBuffers = device->allocateCommandBuffers (allocateInfo);
             } catch (vk::SystemError &err) {
+                logger->critical ("Failed to allocate command buffers: {}", err.what());
                 throw std::runtime_error ("Failed to allocate command buffers!");
             }
 
@@ -668,6 +907,7 @@ namespace game {
                 try {
                     commandBuffers[i].begin (beginInfo);
                 } catch (vk::SystemError &err) {
+                    logger->critical ("Failed to begin recording command buffer {} of {}: {}",i, commandBuffers.size(), err.what());
                     throw std::runtime_error ("Failed to begin recording command buffer!");
                 }
 
@@ -682,19 +922,31 @@ namespace game {
                 renderPassInfo.pClearValues = &clearColor;
 
                 commandBuffers[i].beginRenderPass (renderPassInfo, vk::SubpassContents::eInline);
-                commandBuffers[i].bindPipeline (vk::PipelineBindPoint::eGraphics, graphicsPipeline);
-                commandBuffers[i].draw (3, 1, 0, 0);
+                {
+                    commandBuffers[i].bindPipeline (vk::PipelineBindPoint::eGraphics, graphicsPipeline);
+                    vk::Buffer vertexBuffers[] = {vertexBuffer};
+                    vk::DeviceSize offsets[] = {0};
+                    commandBuffers[i].bindVertexBuffers (0, 1, vertexBuffers, offsets);
+                    commandBuffers[i].bindIndexBuffer (indexBuffer, 0, vk::IndexType::eUint16);
+                    commandBuffers[i].bindDescriptorSets (vk::PipelineBindPoint::eGraphics, pipelineLayout, 0, 1, &descriptorSets[i], 0,nullptr);
+                    commandBuffers[i].drawIndexed(static_cast<uint32_t>(indices.size ()), 1, 0, 0, 0);
+                }
                 commandBuffers[i].endRenderPass ();
 
                 try {
                     commandBuffers[i].end ();
                 } catch (vk::SystemError &err) {
+                    logger->critical ("Failed to record command buffer {} of {}: {}", i, commandBuffers.size(), err.what());
                     throw std::runtime_error ("Failed to record command buffer!");
                 }
             }
+
+            logger->info ("Finished: Command Buffer Creation");
         }
 
         void createSyncObjects () {
+            logger->info ("Starting: Sync Objects Creation");
+
             imageAvailableSemaphores.resize (maxFramesInFlight);
             renderFinishedSemaphores.resize (maxFramesInFlight);
             inFlightFences.resize (maxFramesInFlight);
@@ -706,13 +958,16 @@ namespace game {
                     inFlightFences[i] = device->createFence ({vk::FenceCreateFlagBits::eSignaled});
                 }
             } catch (vk::SystemError &err) {
+                logger->critical ("Failed to create sync objects for a frame: {}", err.what());
                 throw std::runtime_error ("Failed to create synchronization objects for a frame!");
             }
+
+            logger->info ("Finished: Sync Objects Creation");
         }
 
         void drawFrame () {
-            device->waitForFences (1, &inFlightFences[currentFrame], VK_TRUE, std::numeric_limits<uint64_t>::max ());
-            device->resetFences (1, &inFlightFences[currentFrame]);
+            device->waitForFences (inFlightFences[currentFrame], VK_TRUE, std::numeric_limits<uint64_t>::max ());
+            device->resetFences (inFlightFences[currentFrame]);
 
             uint32_t imageIndex;
             try {
@@ -728,6 +983,8 @@ namespace game {
                 throw std::runtime_error ("Failed to acquire swap chain image!");
             }
 
+            updateUniformBuffer (imageIndex);
+
             vk::SubmitInfo submitInfo = {};
             vk::Semaphore waitSemaphores[] = {imageAvailableSemaphores[currentFrame]};
             vk::PipelineStageFlags waitStages[] = {vk::PipelineStageFlagBits::eColorAttachmentOutput};
@@ -741,7 +998,7 @@ namespace game {
             submitInfo.signalSemaphoreCount = 1;
             submitInfo.pSignalSemaphores = signalSemaphores;
 
-            device->resetFences (1, &inFlightFences[currentFrame]);
+            device->resetFences (inFlightFences[currentFrame]);
 
             try {
                 graphicsQueue.submit (submitInfo, inFlightFences[currentFrame]);
@@ -768,13 +1025,31 @@ namespace game {
             }
 
             if (resultPresent == vk::Result::eSuboptimalKHR || frameBufferResized) {
-                std::cout << "swap chain out of date/suboptimal/window resized - recreating" << std::endl;
                 frameBufferResized = false;
                 recreateSwapChain ();
                 return;
             }
 
             currentFrame = (currentFrame + 1) % maxFramesInFlight;
+        }
+
+        void updateUniformBuffer(uint32_t currentImage) {
+            static auto startTime = std::chrono::high_resolution_clock::now();
+
+            auto currentTime = std::chrono::high_resolution_clock::now();
+            float time = std::chrono::duration<float, std::chrono::seconds::period> (currentTime - startTime).count();
+
+            UniformBufferObject ubo = {};
+            ubo.model = glm::rotate (glm::mat4(1.0f), time * glm::radians (90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+            ubo.view = glm::lookAt (glm::vec3(2.0f), glm::vec3(0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+            ubo.proj = glm::perspective (glm::radians (45.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10.0f);
+            ubo.proj[1][1] *= -1;
+
+            void* data = device->mapMemory (uniformBufferMemory[currentImage], 0, sizeof(ubo));
+            {
+                memcpy (data, &ubo, sizeof (ubo));
+            }
+            device->unmapMemory (uniformBufferMemory[currentImage]);
         }
 
         static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback (VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType,
@@ -797,6 +1072,7 @@ int main(int argc, char* argv[]) {
     fileSink->set_level (spdlog::level::trace);
 
     spdlog::logger logger("main_out", {consoleSink, fileSink});
+    spdlog::register_logger (std::make_shared<spdlog::logger>(logger));
     logger.set_level (spdlog::level::debug);
     logger.enable_backtrace (32);
 
