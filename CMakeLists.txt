@@ -19,8 +19,6 @@ add_subdirectory(libs/spdlog)
 # Find Boost
 #find_package(Boost 1.76 REQUIRED COMPONENTS system container)
 
-add_subdirectory(assets)
-
 # Find GLM
 include_directories(libs/glm)
 
@@ -29,3 +27,15 @@ add_executable(Basic_Tests src/main.cpp src/vulkan_helpers.cpp src/vulkan_helper
 target_link_libraries(Basic_Tests PUBLIC Vulkan::Vulkan)
 target_link_libraries(Basic_Tests PUBLIC glfw)
 target_link_libraries(Basic_Tests PRIVATE spdlog::spdlog)
+
+add_custom_command(TARGET Basic_Tests POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory assets
+        COMMAND ${CMAKE_COMMAND} -E make_directory assets/shaders
+        COMMAND ${CMAKE_COMMAND} -E make_directory assets/textures
+        COMMAND ${CMAKE_COMMAND} -E make_directory assets/models
+        )
+
+add_custom_command(TARGET Basic_Tests POST_BUILD
+        COMMAND glslc ${CMAKE_SOURCE_DIR}/assets/shaders/fragment.frag -o assets/shaders/frag.spv
+        COMMAND glslc ${CMAKE_SOURCE_DIR}/assets/shaders/vertex.vert -o assets/shaders/vert.spv
+        )
