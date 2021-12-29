@@ -8,8 +8,9 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include "spdlog/spdlog.h"
-#include "spdlog/sinks/stdout_color_sinks.h"
+#include <spdlog/spdlog.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/sinks/rotating_file_sink.h>
 
 #include <iostream>
 #include <stdexcept>
@@ -21,8 +22,6 @@
 #include <chrono>
 
 #include "vulkan_helpers.hpp"
-#include "spdlog/sinks/basic_file_sink.h"
-#include "spdlog/sinks/rotating_file_sink.h"
 
 namespace game {
     const std::vector<const char *> validationLayers = {
