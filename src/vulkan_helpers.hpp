@@ -8,6 +8,7 @@
 #include <vulkan/vulkan.hpp>
 #include <optional>
 #include <set>
+
 #include "GLFW/glfw3.h"
 
 namespace game::vk_helpers {
@@ -30,7 +31,7 @@ namespace game::vk_helpers {
         std::optional<uint32_t> graphicsFamily;
         std::optional<uint32_t> presentFamily;
 
-        bool isComplete () {
+        [[nodiscard]] bool isComplete () const {
             return graphicsFamily.has_value () && presentFamily.has_value ();
         }
     };
@@ -63,8 +64,8 @@ namespace game::vk_helpers {
 
     uint32_t findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties, vk::PhysicalDevice device);
 
-    void createBuffer(vk::DeviceSize size, vk::Flags<vk::BufferUsageFlagBits> usage, vk::Flags<vk::MemoryPropertyFlagBits> properties, vk::Buffer& buffer, vk::DeviceMemory& bufferMemory, vk::UniqueDevice &device,
-                      vk::PhysicalDevice &physicalDevice);
+    void createBuffer(vk::DeviceSize size, vk::Flags<vk::BufferUsageFlagBits> usage, vk::Flags<vk::MemoryPropertyFlagBits> properties, vk::Buffer& buffer, vk::DeviceMemory& bufferMemory,
+                      vk::UniqueDevice &device,vk::PhysicalDevice &physicalDevice);
 
     void copyBuffer(vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize size, vk::CommandPool commandPool, vk::UniqueDevice &device, vk::Queue graphicsQueue);
 }
