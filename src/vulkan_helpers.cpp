@@ -138,7 +138,7 @@ bool game::vk_helpers::checkValidationLayerSupport () {
 }
 
 vk::UniqueShaderModule game::vk_helpers::createShaderModule (const std::string& path, vk::UniqueDevice &device) {
-    auto code = file_loader::readFile (path);
+    auto code = file_loader::readFileBinary (path);
 
     try {
         return device->createShaderModuleUnique ({vk::ShaderModuleCreateFlags(), code.size(), reinterpret_cast<const uint32_t*>(code.data())});

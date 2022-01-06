@@ -9,6 +9,8 @@
 #include <vector>
 
 namespace game::file_loader{
-    std::vector<char> readFile (const std::string &filename);
+
+    std::vector<char> readFileBinary (const std::string &filename);
+
 }
 #endif //BASIC_TESTS_FILE_LOADER_HPP
