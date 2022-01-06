@@ -5,8 +5,8 @@
 #ifndef BASIC_TESTS_FILE_LOADER_HPP
 #define BASIC_TESTS_FILE_LOADER_HPP
 
-#include <fstream>
 #include <vector>
+#include <string>
 
 namespace game::file_loader{
 

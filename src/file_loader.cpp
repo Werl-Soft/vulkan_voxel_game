@@ -4,6 +4,7 @@
 
 #include "file_loader.hpp"
 #include <spdlog/spdlog.h>
+#include <fstream>
 
 std::vector<char> game::file_loader::readFileBinary (const std::string &filename) {
     std::ifstream file(filename, std::ios::ate | std::ios::binary);
