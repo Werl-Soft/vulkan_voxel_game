@@ -22,6 +22,9 @@ add_subdirectory(libs/spdlog)
 # Find GLM
 include_directories(libs/glm)
 
+# Find Others
+include_directories(libs/other/include)
+
 add_executable(Basic_Tests src/main.cpp src/vulkan_helpers.cpp src/vulkan_helpers.hpp src/file_loader.cpp src/file_loader.hpp src/game_application.cpp src/game_application.hpp)
 
 target_link_libraries(Basic_Tests PUBLIC Vulkan::Vulkan)
