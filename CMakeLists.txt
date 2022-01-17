@@ -20,25 +20,27 @@ add_subdirectory(libs/spdlog)
 #find_package(Boost 1.76 REQUIRED COMPONENTS system container)
 
 # Find GLM
-include_directories(libs/glm)
+add_subdirectory(libs/glm)
 
 # Find Others
 include_directories(libs/other/include)
 
 add_executable(Basic_Tests src/main.cpp src/vulkan_helpers.cpp src/vulkan_helpers.hpp src/file_loader.cpp src/file_loader.hpp src/game_application.cpp src/game_application.hpp)
 
-target_link_libraries(Basic_Tests PUBLIC Vulkan::Vulkan)
+target_link_libraries(Basic_Tests PUBLIC Vulkan::Vulkan glm::glm)
 target_link_libraries(Basic_Tests PUBLIC glfw)
 target_link_libraries(Basic_Tests PRIVATE spdlog::spdlog)
+
 
 add_custom_command(TARGET Basic_Tests POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E make_directory assets
         COMMAND ${CMAKE_COMMAND} -E make_directory assets/shaders
         COMMAND ${CMAKE_COMMAND} -E make_directory assets/textures
-        COMMAND ${CMAKE_COMMAND} -E make_directory assets/models
-        )
+        COMMAND ${CMAKE_COMMAND} -E make_directory assets/models)
+
+add_custom_command(TARGET Basic_Tests POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/assets/textures assets/textures)
 
 add_custom_command(TARGET Basic_Tests POST_BUILD
         COMMAND glslc ${CMAKE_SOURCE_DIR}/assets/shaders/fragment.frag -o assets/shaders/frag.spv
-        COMMAND glslc ${CMAKE_SOURCE_DIR}/assets/shaders/vertex.vert -o assets/shaders/vert.spv
-        )
+        COMMAND glslc ${CMAKE_SOURCE_DIR}/assets/shaders/vertex.vert -o assets/shaders/vert.spv)

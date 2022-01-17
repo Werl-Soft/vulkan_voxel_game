@@ -4,6 +4,8 @@
 #include "game_application.hpp"
 
 int main(int argc, char* argv[]) {
+    game::GameApplication app;
+
     auto consoleSink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
     consoleSink->set_level (spdlog::level::info);
 
@@ -15,8 +17,7 @@ int main(int argc, char* argv[]) {
     spdlog::register_logger (std::make_shared<spdlog::logger>(logger));
     logger.set_level (spdlog::level::debug);
     logger.enable_backtrace (32);
-
-    game::GameApplication app;
+    spdlog::set_default_logger (std::make_shared<spdlog::logger>(logger));
 
     try {
         logger.info("Starting Application");
@@ -26,6 +27,13 @@ int main(int argc, char* argv[]) {
         logger.critical ("Application Crashed: {}", e.what ());
         logger.dump_backtrace();
         logger.flush();
+        spdlog::shutdown();
+        return EXIT_FAILURE;
+    } catch (...) {
+        logger.critical ("Application Crashed To Unknown Error");
+        logger.dump_backtrace();
+        logger.flush();
+        spdlog::shutdown();
         return EXIT_FAILURE;
     }
     logger.flush();

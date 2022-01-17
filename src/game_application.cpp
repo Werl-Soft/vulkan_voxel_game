@@ -1,22 +1,20 @@
 //
 // Created by peter on 2022-01-02.
 //
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
+
+#include "game_application.hpp"
 
 #include <iostream>
 #include <stdexcept>
-#include <functional>
 #include <cstdlib>
 #include <optional>
 #include <set>
 #include <chrono>
 
-#include "vulkan_helpers.hpp"
+#include <glm/gtc/matrix_transform.hpp>
 
-#include "game_application.hpp"
+#include "vulkan_helpers.hpp"
+#include "file_loader.hpp"
 
 void game::GameApplication::run () {
     logger = spdlog::get ("main_out");
@@ -31,9 +29,16 @@ void game::GameApplication::initWindow () {
 
     glfwInit ();
 
+    logger->info("GLFW initialized");
+
     glfwWindowHint (GLFW_CLIENT_API, GLFW_NO_API);
 
     window = glfwCreateWindow (width, height, "Vulkan", nullptr, nullptr);
+    if (window == nullptr) {
+        logger->critical ("Failed to create GLFW window!");
+    } else {
+        logger->debug ("GLFW window created successfully");
+    }
     glfwSetWindowUserPointer (window, this);
     glfwSetFramebufferSizeCallback (window, frameBufferResizeCallback);
 
@@ -56,15 +61,19 @@ void game::GameApplication::initVulkan () {
     createSwapChain ();
     createImageViews ();
     createRenderPass ();
-    createDescriptorSetLayout();
+    createDescriptorSetLayout ();
     createGraphicsPipeline ();
-    createFrameBuffers ();
     createCommandPool ();
+    createDepthResources();
+    createFrameBuffers ();
+    createTextureImage ();
+    createTextureImageView ();
+    createTextureSampler ();
     createVertexBuffer ();
-    createIndexBuffer();
-    createUniformBuffers();
-    createDescriptorPool();
-    createDescriptorSets();
+    createIndexBuffer ();
+    createUniformBuffers ();
+    createDescriptorPool ();
+    createDescriptorSets ();
     createCommandBuffers ();
     createSyncObjects ();
 
@@ -115,7 +124,7 @@ void game::GameApplication::createInstance () {
     logger->info ("Available Extensions:");
 
     for (const auto &extension: vk::enumerateInstanceExtensionProperties ()) {
-        logger->info ("\t {}", extension.extensionName);
+        logger->info ("\t{}", extension.extensionName);
     }
 
     dld = vk::DispatchLoaderDynamic (instance->operator VkInstance_T * (), vkGetInstanceProcAddr);
@@ -171,6 +180,13 @@ void game::GameApplication::pickPhysicalDevice () {
         throw std::runtime_error ("Failed to find GPUs with Vulkan support!");
     }
 
+    logger->info ("Available Devices: {}", devices.size());
+    int n = 0;
+    for (const auto &d: devices) {
+        logger->info ("\t{}: {}", n, d.getProperties ().deviceName);
+        n++;
+    }
+
     for (const auto &d: devices) {
         if (vk_helpers::isDeviceSuitable (d, surface)) {
             physicalDevice = d;
@@ -181,9 +197,16 @@ void game::GameApplication::pickPhysicalDevice () {
     if (! physicalDevice) {
         logger->critical ("Failed to find a suitable GPU!");
         throw std::runtime_error ("Failed to find a suitable GPU!");
+    } else {
+        // TODO Remove
+        logger->info ("Device Chosen: {}", physicalDevice.getProperties ().deviceName);
+        auto supportedExt = physicalDevice.enumerateDeviceExtensionProperties ();
+        for (auto ext : supportedExt) {
+            logger->info ("\t{}", ext.extensionName);
+        }
     }
 
-    logger->info ("Finished: Choose Physical Device");
+    logger->info ("Finished: Choose Physical Device: {}", physicalDevice.getProperties ().deviceName);
 }
 
 void game::GameApplication::createLogicalDevice () {
@@ -202,6 +225,8 @@ void game::GameApplication::createLogicalDevice () {
     }
 
     auto deviceFeatures = vk::PhysicalDeviceFeatures ();
+    deviceFeatures.samplerAnisotropy = true;
+
     auto createInfo = vk::DeviceCreateInfo (
             vk::DeviceCreateFlags (),
             static_cast<uint32_t>(queueCreateInfos.size ()),
@@ -209,6 +234,7 @@ void game::GameApplication::createLogicalDevice () {
     createInfo.pEnabledFeatures = &deviceFeatures;
     createInfo.enabledExtensionCount = deviceExtensions.size ();
     createInfo.ppEnabledExtensionNames = deviceExtensions.data ();
+
 
     if (vk_helpers::enableValidationLayers) {
         createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size ());
@@ -278,7 +304,7 @@ void game::GameApplication::createSwapChain () {
         throw std::runtime_error ("failed to create swap chain!");
     }
 
-    swapChainImages = device->getSwapchainImagesKHR (swapChain);
+    swapChainImages = device->getSwapchainImagesKHR(swapChain);
 
     swapChainImageFormat = surfaceFormat.format;
     swapChainExtent = extent;
@@ -291,25 +317,11 @@ void game::GameApplication::createImageViews () {
     swapChainImageViews.resize (swapChainImages.size ());
 
     for (size_t i = 0; i < swapChainImages.size (); i ++) {
-        vk::ImageViewCreateInfo createInfo = {};
-        createInfo.image = swapChainImages[i];
-        createInfo.viewType = vk::ImageViewType::e2D;
-        createInfo.format = swapChainImageFormat;
-        createInfo.components.r = vk::ComponentSwizzle::eIdentity;
-        createInfo.components.g = vk::ComponentSwizzle::eIdentity;
-        createInfo.components.b = vk::ComponentSwizzle::eIdentity;
-        createInfo.components.a = vk::ComponentSwizzle::eIdentity;
-        createInfo.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
-        createInfo.subresourceRange.baseMipLevel = 0;
-        createInfo.subresourceRange.levelCount = 1;
-        createInfo.subresourceRange.baseArrayLayer = 0;
-        createInfo.subresourceRange.layerCount = 1;
-
         try {
-            swapChainImageViews[i] = device->createImageView (createInfo);
+            swapChainImageViews[i] = vk_helpers::createImageView (swapChainImages[i], swapChainImageFormat, vk::ImageAspectFlagBits::eColor, device);
         }
         catch (vk::SystemError &err) {
-            logger->critical ("Failed to create image views: {}", err.what());
+            logger->critical ("Failed to create image view {}: {}", i, err.what());
             throw std::runtime_error ("failed to create image views!");
         }
     }
@@ -318,6 +330,20 @@ void game::GameApplication::createImageViews () {
 
 void game::GameApplication::createRenderPass () {
     logger->info ("Starting: Render Pass Creation");
+
+    vk::AttachmentDescription depthAttachment = {};
+    depthAttachment.format = vk_helpers::findDepthFormat (physicalDevice);
+    depthAttachment.samples = vk::SampleCountFlagBits::e1;
+    depthAttachment.loadOp = vk::AttachmentLoadOp::eClear;
+    depthAttachment.storeOp = vk::AttachmentStoreOp::eDontCare;
+    depthAttachment.stencilLoadOp = vk::AttachmentLoadOp::eDontCare;
+    depthAttachment.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+    depthAttachment.initialLayout = vk::ImageLayout::eUndefined;
+    depthAttachment.finalLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+
+    vk::AttachmentReference depthAttachRef = {};
+    depthAttachRef.attachment = 1;
+    depthAttachRef.layout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
 
     vk::AttachmentDescription colorAttachment = {};
     colorAttachment.format = swapChainImageFormat;
@@ -333,24 +359,26 @@ void game::GameApplication::createRenderPass () {
     colorAttachmentRef.attachment = 0;
     colorAttachmentRef.layout = vk::ImageLayout::eColorAttachmentOptimal;
 
-    vk::SubpassDescription subpass{};
-    subpass.pipelineBindPoint = vk::PipelineBindPoint::eGraphics;
-    subpass.colorAttachmentCount = 1;
-    subpass.pColorAttachments = &colorAttachmentRef;
+    vk::SubpassDescription subPass{};
+    subPass.pipelineBindPoint = vk::PipelineBindPoint::eGraphics;
+    subPass.colorAttachmentCount = 1;
+    subPass.pColorAttachments = &colorAttachmentRef;
+    subPass.pDepthStencilAttachment = &depthAttachRef;
 
     vk::SubpassDependency dependency = {};
     dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
     dependency.dstSubpass = 0;
-    dependency.srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+    dependency.srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput | vk::PipelineStageFlagBits::eEarlyFragmentTests;
+    dependency.dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput | vk::PipelineStageFlagBits::eEarlyFragmentTests;
+    dependency.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite | vk::AccessFlagBits::eDepthStencilAttachmentWrite;
 
-    dependency.dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-    dependency.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
+    std::array<vk::AttachmentDescription, 2> attachments = {colorAttachment, depthAttachment};
 
     vk::RenderPassCreateInfo renderPassInfo{};
-    renderPassInfo.attachmentCount = 1;
-    renderPassInfo.pAttachments = &colorAttachment;
+    renderPassInfo.attachmentCount = attachments.size();
+    renderPassInfo.pAttachments = attachments.data();
     renderPassInfo.subpassCount = 1;
-    renderPassInfo.pSubpasses = &subpass;
+    renderPassInfo.pSubpasses = &subPass;
     renderPassInfo.dependencyCount = 1;
     renderPassInfo.pDependencies = &dependency;
 
@@ -374,9 +402,18 @@ void game::GameApplication::createDescriptorSetLayout () {
     uboLayoutBinding.stageFlags = vk::ShaderStageFlagBits::eVertex;
     uboLayoutBinding.pImmutableSamplers = nullptr;
 
+    vk::DescriptorSetLayoutBinding samplerLayoutBinding = {};
+    samplerLayoutBinding.binding = 1;
+    samplerLayoutBinding.descriptorCount = 1;
+    samplerLayoutBinding.descriptorType = vk::DescriptorType::eCombinedImageSampler;
+    samplerLayoutBinding.pImmutableSamplers = nullptr;
+    samplerLayoutBinding.stageFlags = vk::ShaderStageFlagBits::eFragment;
+
+    std::array<vk::DescriptorSetLayoutBinding, 2> bindings = { uboLayoutBinding, samplerLayoutBinding };
+
     vk::DescriptorSetLayoutCreateInfo layoutInfo = {};
-    layoutInfo.bindingCount = 1;
-    layoutInfo.pBindings = &uboLayoutBinding;
+    layoutInfo.bindingCount = bindings.size();
+    layoutInfo.pBindings = bindings.data();
 
     try {
         descriptorSetLayout = device->createDescriptorSetLayout (layoutInfo);
@@ -479,6 +516,15 @@ void game::GameApplication::createGraphicsPipeline () {
         throw std::runtime_error ("Failed to create pipeline layout!");
     }
 
+    vk::PipelineDepthStencilStateCreateInfo depthStencil = {};
+    depthStencil.depthTestEnable = true;
+    depthStencil.depthWriteEnable = true;
+    depthStencil.depthCompareOp = vk::CompareOp::eLess;
+    // used for culling
+    depthStencil.depthBoundsTestEnable = false;
+    // depth stencil operations
+    depthStencil.stencilTestEnable = false;
+
     vk::GraphicsPipelineCreateInfo pipelineInfo{};
     pipelineInfo.stageCount = 2;
     pipelineInfo.pStages = shaderStages;
@@ -492,6 +538,7 @@ void game::GameApplication::createGraphicsPipeline () {
     pipelineInfo.renderPass = renderPass;
     pipelineInfo.subpass = 0;
     pipelineInfo.basePipelineHandle = nullptr;
+    pipelineInfo.pDepthStencilState = &depthStencil;
 
     try {
         graphicsPipeline = device->createGraphicsPipeline (nullptr, pipelineInfo).value;
@@ -509,14 +556,15 @@ void game::GameApplication::createFrameBuffers () {
     swapChainFrameBuffers.resize (swapChainImageViews.size ());
 
     for (size_t i = 0; i < swapChainImageViews.size (); i ++) {
-        vk::ImageView attachments[] = {
-                swapChainImageViews[i]
+        std::array<vk::ImageView, 2> attachments = {
+                swapChainImageViews[i].get(),
+                depthImageView.get()
         };
 
         vk::FramebufferCreateInfo frameBufferCreateInfo = {};
         frameBufferCreateInfo.renderPass = renderPass;
-        frameBufferCreateInfo.attachmentCount = 1;
-        frameBufferCreateInfo.pAttachments = attachments;
+        frameBufferCreateInfo.attachmentCount = attachments.size();
+        frameBufferCreateInfo.pAttachments = attachments.data();
         frameBufferCreateInfo.width = swapChainExtent.width;
         frameBufferCreateInfo.height = swapChainExtent.height;
         frameBufferCreateInfo.layers = 1;
@@ -548,6 +596,106 @@ void game::GameApplication::createCommandPool () {
     }
 
     logger->info ("Finished: Command Pool Creation");
+}
+
+
+void game::GameApplication::createDepthResources () {
+    logger->info ("Starting: Depth Resource Creation");
+
+    vk::Format depthFormat = vk_helpers::findDepthFormat (physicalDevice);
+
+    depthImage = vk_helpers::createImage (swapChainExtent.width,
+                                          swapChainExtent.height,
+                                          depthFormat,
+                                          vk::ImageTiling::eOptimal,
+                                          vk::ImageUsageFlagBits::eDepthStencilAttachment,
+                                          vk::MemoryPropertyFlagBits::eDeviceLocal,
+                                          depthImageMemory,
+                                          device,
+                                          physicalDevice);
+
+depthImageView = vk_helpers::createImageView(depthImage.get(), depthFormat, vk::ImageAspectFlagBits::eDepth, device);
+
+    logger->info ("Finished: Depth Resource Creation");
+}
+
+
+void game::GameApplication::createTextureImage () {
+    logger->info ("Starting: Texture Image Creation");
+
+    auto textureData = file_loader::readFileImage("assets/textures/statue.jpg");
+
+    vk::Buffer stagingBuffer;
+    vk::DeviceMemory stagingDeviceMemory;
+
+    vk_helpers::createBuffer (textureData.getSize(),
+                              vk::BufferUsageFlagBits::eTransferSrc,
+                              vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
+                              stagingBuffer,
+                              stagingDeviceMemory,
+                              device,
+                              physicalDevice);
+
+    void* data = device->mapMemory (stagingDeviceMemory, 0 , static_cast<size_t>(textureData.getSize()));
+    {
+        memcpy(data, textureData.data, static_cast<size_t>(textureData.getSize()));
+    }
+    device->unmapMemory (stagingDeviceMemory);
+
+    file_loader::freeImageData (textureData);
+
+    textureImage = vk_helpers::createImage (textureData.width,
+                             textureData.height,
+                             vk::Format::eR8G8B8A8Srgb,
+                             vk::ImageTiling::eOptimal,
+                             vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled,
+                             vk::MemoryPropertyFlagBits::eDeviceLocal,
+                             textureMemory,
+                             device,
+                             physicalDevice);
+
+    vk_helpers::transitionImageLayout (textureImage.get(), vk::Format::eR8G8B8A8Srgb, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal, commandPool, device, graphicsQueue);
+    vk_helpers::copyBufferToImage (stagingBuffer, textureImage.get(), textureData.width, textureData.height, commandPool, device, graphicsQueue);
+    vk_helpers::transitionImageLayout (textureImage.get(), vk::Format::eR8G8B8A8Srgb, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal, commandPool, device, graphicsQueue);
+
+    device->destroyBuffer (stagingBuffer);
+    device->freeMemory (stagingDeviceMemory);
+
+    logger->info ("Finished: Texture Image Creation");
+}
+
+void game::GameApplication::createTextureImageView () {
+    textureImageView = vk_helpers::createImageView (textureImage.get(), vk::Format::eR8G8B8A8Srgb, vk::ImageAspectFlagBits::eColor, device);
+}
+
+
+void game::GameApplication::createTextureSampler () {
+    vk::SamplerCreateInfo samplerInfo = {};
+    samplerInfo.magFilter = vk::Filter::eLinear;
+    samplerInfo.minFilter = vk::Filter::eLinear;
+    samplerInfo.addressModeU = vk::SamplerAddressMode::eRepeat;
+    samplerInfo.addressModeV = vk::SamplerAddressMode::eRepeat;
+    samplerInfo.addressModeW = vk::SamplerAddressMode::eRepeat;
+
+    auto properties = physicalDevice.getProperties ();
+
+    samplerInfo.anisotropyEnable = true;
+    samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
+    samplerInfo.borderColor = vk::BorderColor::eIntOpaqueBlack;
+    samplerInfo.unnormalizedCoordinates = false;
+    samplerInfo.compareEnable = false;
+    samplerInfo.compareOp = vk::CompareOp::eAlways;
+    samplerInfo.mipmapMode = vk::SamplerMipmapMode::eLinear;
+    samplerInfo.mipLodBias = 0.0f;
+    samplerInfo.minLod = 0.0f;
+    samplerInfo.maxLod = 0.0f;
+
+    try {
+        textureSampler = device->createSamplerUnique (samplerInfo);
+    } catch (vk::SystemError &err) {
+        logger->critical ("Failed to create texture sampler: {}", err.what());
+        throw std::runtime_error("Failed to create texture sampler!");
+    }
 }
 
 void game::GameApplication::createVertexBuffer () {
@@ -650,14 +798,18 @@ void game::GameApplication::createUniformBuffers () {
 void game::GameApplication::createDescriptorPool () {
     logger->info ("Starting: Descriptor Pool Creation");
 
-    vk::DescriptorPoolSize poolSize = {};
-    poolSize.type = vk::DescriptorType::eUniformBuffer;
-    poolSize.descriptorCount = static_cast<uint32_t>(swapChainImages.size());
+    std::array<vk::DescriptorPoolSize, 2> poolSize = {};
+    poolSize[0].type = vk::DescriptorType::eUniformBuffer;
+    poolSize[0].descriptorCount = swapChainImages.size();
+
+    poolSize[1].type = vk::DescriptorType::eCombinedImageSampler;
+    poolSize[1].descriptorCount = swapChainImages.size();
+
 
     vk::DescriptorPoolCreateInfo poolInfo = {};
-    poolInfo.poolSizeCount = 1;
-    poolInfo.pPoolSizes = &poolSize;
-    poolInfo.maxSets = static_cast<uint32_t>(swapChainImages.size());
+    poolInfo.poolSizeCount = poolSize.size();
+    poolInfo.pPoolSizes = poolSize.data();
+    poolInfo.maxSets = swapChainImages.size();
 
     try{
         descriptorPool = device->createDescriptorPool (poolInfo);
@@ -692,17 +844,27 @@ void game::GameApplication::createDescriptorSets () {
         bufferInfo.offset = 0;
         bufferInfo.range = sizeof (UniformBufferObject);
 
-        vk::WriteDescriptorSet descriptorWriter = {};
-        descriptorWriter.dstSet = descriptorSets[i];
-        descriptorWriter.dstBinding = 0;
-        descriptorWriter.dstArrayElement = 0;
-        descriptorWriter.descriptorType = vk::DescriptorType::eUniformBuffer;
-        descriptorWriter.descriptorCount = 1;
-        descriptorWriter.pBufferInfo = &bufferInfo;
-        descriptorWriter.pImageInfo = nullptr;
-        descriptorWriter.pTexelBufferView = nullptr;
+        vk::DescriptorImageInfo imageInfo = {};
+        imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+        imageInfo.imageView = textureImageView.get();
+        imageInfo.sampler = textureSampler.get();
 
-        device->updateDescriptorSets (1, &descriptorWriter, 0, nullptr);
+        std::array<vk::WriteDescriptorSet, 2> descriptorWriter = {};
+        descriptorWriter[0].dstSet = descriptorSets[i];
+        descriptorWriter[0].dstBinding = 0;
+        descriptorWriter[0].dstArrayElement = 0;
+        descriptorWriter[0].descriptorType = vk::DescriptorType::eUniformBuffer;
+        descriptorWriter[0].descriptorCount = 1;
+        descriptorWriter[0].pBufferInfo = &bufferInfo;
+
+        descriptorWriter[1].dstSet = descriptorSets[i];
+        descriptorWriter[1].dstBinding = 1;
+        descriptorWriter[1].dstArrayElement = 0;
+        descriptorWriter[1].descriptorType = vk::DescriptorType::eCombinedImageSampler;
+        descriptorWriter[1].descriptorCount = 1;
+        descriptorWriter[1].pImageInfo = &imageInfo;
+
+        device->updateDescriptorSets (descriptorWriter.size(), descriptorWriter.data(), 0, nullptr);
     }
 
     logger->info ("Finished: Descriptor Set Creation");
@@ -747,9 +909,11 @@ void game::GameApplication::createCommandBuffers () {
         renderPassInfo.renderArea.offset = vk::Offset2D (0, 0);
         renderPassInfo.renderArea.extent = swapChainExtent;
 
-        vk::ClearValue clearColor = {std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f}};
-        renderPassInfo.clearValueCount = 1;
-        renderPassInfo.pClearValues = &clearColor;
+        std::array<vk::ClearValue, 2> clearValues;
+        clearValues[0] = {std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f}};
+        clearValues[1] = vk::ClearValue({1.0f, 0});
+        renderPassInfo.clearValueCount = clearValues.size();
+        renderPassInfo.pClearValues = clearValues.data();
 
         commandBuffers[i].beginRenderPass (renderPassInfo, vk::SubpassContents::eInline);
         {
@@ -819,7 +983,7 @@ void game::GameApplication::drawFrame () {
     // Checks to see if swap chain needs to be recreated
     uint32_t imageIndex;
     try {
-        vk::ResultValue result = device->acquireNextImageKHR (swapChain,
+        auto result = device->acquireNextImageKHR (swapChain,
                                                               std::numeric_limits<uint64_t>::max (),
                                                               imageAvailableSemaphores[currentFrame],
                                                               nullptr);
@@ -860,9 +1024,9 @@ void game::GameApplication::drawFrame () {
     presentInfo.waitSemaphoreCount = 1;
     presentInfo.pWaitSemaphores = signalSemaphores;
 
-    vk::SwapchainKHR swapchains[] = {swapChain};
+    vk::SwapchainKHR swapChains[] = {swapChain};
     presentInfo.swapchainCount = 1;
-    presentInfo.pSwapchains = swapchains;
+    presentInfo.pSwapchains = swapChains;
     presentInfo.pImageIndices = &imageIndex;
 
     vk::Result resultPresent;
@@ -923,6 +1087,7 @@ void game::GameApplication::recreateSwapChain () {
     createImageViews ();
     createRenderPass ();
     createGraphicsPipeline ();
+    createDepthResources ();
     createFrameBuffers ();
     createUniformBuffers();
     createDescriptorPool();
@@ -945,9 +1110,6 @@ void game::GameApplication::cleanupSwapChain () {
     device->destroyRenderPass (renderPass);
     device->destroyPipelineLayout (pipelineLayout);
 
-    for (auto imageView: swapChainImageViews) {
-        device->destroyImageView (imageView);
-    }
     device->destroySwapchainKHR (swapChain);
 
     for (size_t i = 0; i < swapChainImages.size(); i++) {
@@ -965,6 +1127,7 @@ void game::GameApplication::cleanup () {
     logger->info ("Starting: Cleanup");
 
     cleanupSwapChain ();
+
 
     device->destroyDescriptorSetLayout (descriptorSetLayout);
 

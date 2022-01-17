@@ -64,10 +64,59 @@ namespace game::vk_helpers {
 
     uint32_t findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties, vk::PhysicalDevice device);
 
-    void createBuffer(vk::DeviceSize size, vk::Flags<vk::BufferUsageFlagBits> usage, vk::Flags<vk::MemoryPropertyFlagBits> properties, vk::Buffer& buffer, vk::DeviceMemory& bufferMemory,
-                      vk::UniqueDevice &device,vk::PhysicalDevice &physicalDevice);
+    void createBuffer(vk::DeviceSize size,
+                      vk::BufferUsageFlags usage,
+                      vk::MemoryPropertyFlags properties,
+                      vk::Buffer& buffer,
+                      vk::DeviceMemory& bufferMemory,
+                      vk::UniqueDevice &device,
+                      vk::PhysicalDevice &physicalDevice);
 
-    void copyBuffer(vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize size, vk::CommandPool commandPool, vk::UniqueDevice &device, vk::Queue graphicsQueue);
+    void copyBuffer(vk::Buffer srcBuffer,
+                    vk::Buffer dstBuffer,
+                    vk::DeviceSize size,
+                    vk::CommandPool commandPool,
+                    vk::UniqueDevice &device,
+                    vk::Queue graphicsQueue);
+
+    vk::UniqueImage createImage(uint32_t width,
+                     uint32_t height,
+                     vk::Format format,
+                     vk::ImageTiling tiling,
+                     vk::ImageUsageFlags usage,
+                     vk::MemoryPropertyFlags properties,
+                     vk::UniqueDeviceMemory &imageMemory,
+                     vk::UniqueDevice &device,
+                     vk::PhysicalDevice &physicalDevice);
+
+    vk::CommandBuffer beginSingleTimeCommands(vk::CommandPool &commandPool, vk::UniqueDevice &device);
+
+    void endSingleTimeCommands (vk::CommandBuffer, vk::CommandPool &commandPool, vk::UniqueDevice &device, vk::Queue &graphicsQueue);
+
+    void transitionImageLayout (vk::Image image,
+                                vk::Format format,
+                                vk::ImageLayout oldLayout,
+                                vk::ImageLayout newLayout,
+                                vk::CommandPool &commandPool,
+                                vk::UniqueDevice &device,
+                                vk::Queue &graphicsQueue);
+
+    void copyBufferToImage(vk::Buffer buffer,
+                           vk::Image image,
+                           uint32_t width,
+                           uint32_t height,
+                           vk::CommandPool &commandPool,
+                           vk::UniqueDevice &device,
+                           vk::Queue &graphicsQueue);
+
+    vk::UniqueImageView createImageView(vk::Image, vk::Format format, vk::ImageAspectFlags aspectFlag, vk::UniqueDevice &device);
+
+    vk::Format findSupportedFormat(const std::vector<vk::Format> &candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features, vk::PhysicalDevice device);
+
+    vk::Format findDepthFormat(vk::PhysicalDevice device);
+
+    bool hasStencilComponent(vk::Format format);
+
 }
 
 #endif //BASIC_TESTS_VULKAN_HELPERS_HPP
