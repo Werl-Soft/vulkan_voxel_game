@@ -22,12 +22,21 @@ add_subdirectory(libs/spdlog)
 # Find GLM
 add_subdirectory(libs/glm)
 
+# Find tinygltf
+set(TINYGLTF_HEADER_ONLY ON CACHE INTERNAL "" FORCE)
+set(TINYGLTF_INSTALL OFF CACHE INTERNAL "" FORCE)
+set(TINYGLTF_NO_INCLUDE_STB_IMAGE ON CACHE INTERNAL "" FORCE)
+set(TINYGLTF_NO_EXTERNAL_IMAGE OFF CACHE INTERNAL "" FORCE)
+set(TINYGLTF_USE_CPP14 ON CACHE INTERNAL "" FORCE)
+add_subdirectory(libs/tinygltf)
+
 # Find Others
 include_directories(libs/other/include)
 
 add_executable(Basic_Tests src/main.cpp src/vulkan_helpers.cpp src/vulkan_helpers.hpp src/file_loader.cpp src/file_loader.hpp src/game_application.cpp src/game_application.hpp)
 
-target_link_libraries(Basic_Tests PUBLIC Vulkan::Vulkan glm::glm)
+# Link Libraries
+target_link_libraries(Basic_Tests PUBLIC Vulkan::Vulkan glm::glm tinygltf)
 target_link_libraries(Basic_Tests PUBLIC glfw)
 target_link_libraries(Basic_Tests PRIVATE spdlog::spdlog)
 
