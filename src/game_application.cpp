@@ -120,7 +120,7 @@ void game::GameApplication::createInstance () {
     }
 
 
-    //TODO remove later
+    //TODO Remove Later
     logger->info ("Available Extensions:");
 
     for (const auto &extension: vk::enumerateInstanceExtensionProperties ()) {
@@ -198,7 +198,7 @@ void game::GameApplication::pickPhysicalDevice () {
         logger->critical ("Failed to find a suitable GPU!");
         throw std::runtime_error ("Failed to find a suitable GPU!");
     } else {
-        // TODO Remove
+        // TODO Remove Later
         logger->info ("Device Chosen: {}", physicalDevice.getProperties ().deviceName);
         auto supportedExt = physicalDevice.enumerateDeviceExtensionProperties ();
         for (auto ext : supportedExt) {
