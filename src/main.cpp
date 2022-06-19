@@ -1,11 +1,13 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/sinks/rotating_file_sink.h>
+#include <spdlog/spdlog.h>
 
-#include "game_application.hpp"
+#include "first_app.hpp"
+
+#include <cstdlib>
+#include <stdexcept>
 
 int main(int argc, char* argv[]) {
-    game::GameApplication app;
-
     auto consoleSink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
     consoleSink->set_level (spdlog::level::info);
 
@@ -18,6 +20,8 @@ int main(int argc, char* argv[]) {
     logger.set_level (spdlog::level::debug);
     logger.enable_backtrace (32);
     spdlog::set_default_logger (std::make_shared<spdlog::logger>(logger));
+
+    engine::FirstApp app{};
 
     try {
         logger.info("Starting Application");
