@@ -31,6 +31,10 @@ set(TINYGLTF_NO_EXTERNAL_IMAGE OFF CACHE INTERNAL "" FORCE)
 set(TINYGLTF_USE_CPP14 ON CACHE INTERNAL "" FORCE)
 add_subdirectory(libs/tinygltf)
 
+# Find json.hpp
+set(JSON_BuildTests OFF CACHE INTERNAL "")
+add_subdirectory(libs/json)
+
 # Find Others
 include_directories(libs/other/include)
 
@@ -39,7 +43,7 @@ add_executable(Engine_App src/main.cpp src/engine_window.cpp src/engine_window.h
 add_dependencies(Engine_App BuildShaders)
 # Link Libraries
 
-target_link_libraries(Engine_App PUBLIC Vulkan::Vulkan glm::glm)
+target_link_libraries(Engine_App PUBLIC Vulkan::Vulkan glm::glm nlohmann_json::nlohmann_json)
 target_link_libraries(Engine_App PUBLIC glfw)
 target_link_libraries(Engine_App PRIVATE spdlog::spdlog)
 
