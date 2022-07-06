@@ -8,6 +8,7 @@
 #include "engine_pipeline.hpp"
 #include "engine_device.hpp"
 #include "engine_game_object.hpp"
+#include "engine_camera.hpp"
 
 // std
 #include <memory>
@@ -21,7 +22,7 @@ namespace engine {
         SimpleRenderSystem(const SimpleRenderSystem &) = delete;
         SimpleRenderSystem operator=(const SimpleRenderSystem &) = delete;
 
-        void renderGameObjects (VkCommandBuffer commandBuffer, std::vector<EngineGameObject>& gameObjects);
+        void renderGameObjects (VkCommandBuffer commandBuffer, std::vector<EngineGameObject> &gameObjects, const EngineCamera &camera);
 
 
     private:

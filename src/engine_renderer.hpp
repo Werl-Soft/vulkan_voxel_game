@@ -12,6 +12,7 @@
 // std
 #include <cassert>
 #include <memory>
+#include <chrono>
 
 namespace engine {
     class EngineRenderer {
@@ -22,9 +23,10 @@ namespace engine {
         EngineRenderer(const EngineRenderer &) = delete;
         EngineRenderer operator=(const EngineRenderer &) = delete;
 
+        VkRenderPass getSwapchainRenderpass() const { return engineSwapChain->getRenderPass(); }
+        float getAspectRatio() const { return engineSwapChain->extentAspectRatio(); }
         bool isFrameInProgress() const { return isFrameStarted; }
 
-        VkRenderPass getSwapchainRenderpass() const { return engineSwapChain->getRenderPass(); }
         VkCommandBuffer getCurrentCommandBuffer() const {
             assert(isFrameStarted && "Cannot get command buffer when frame not in progress");
             return commandBuffers[currentFrameIndex];

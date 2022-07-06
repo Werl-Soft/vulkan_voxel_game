@@ -4,15 +4,19 @@
 
 #include "simple_render_system.hpp"
 
+#include "first_app.hpp"
+
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 #include <glm/gtc/constants.hpp>
 
+#include <chrono>
+#include <iostream>
+
 namespace engine {
     struct SimplePushConstantData {
-        glm::mat2 transform {1.0f};
-        glm::vec2 offset;
+        glm::mat4 transform {1.0f};
         alignas(16) glm::vec3 color;
     };
 
@@ -56,14 +60,15 @@ namespace engine {
 
     }
 
-    void SimpleRenderSystem::renderGameObjects (VkCommandBuffer commandBuffer, std::vector<EngineGameObject>& gameObjects) {
+    void SimpleRenderSystem::renderGameObjects (VkCommandBuffer commandBuffer, std::vector<EngineGameObject> &gameObjects, const EngineCamera &camera) {
         enginePipeline->bind (commandBuffer);
+
+        auto projectionView = camera.getProjection () * camera.getViewMatrix ();
 
         for (auto& obj : gameObjects) {
             SimplePushConstantData push {};
-            push.offset = obj.tarnsform2D.translation;
             push.color = obj.color;
-            push.transform = obj.tarnsform2D.mat2();
+            push.transform = projectionView * obj.transform.mat4 ();
 
             vkCmdPushConstants (
                     commandBuffer,

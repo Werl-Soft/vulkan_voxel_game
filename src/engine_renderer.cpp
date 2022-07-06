@@ -2,6 +2,7 @@
 // Created by Peter Lewis on 2022-06-15.
 //
 
+#include <array>
 #include "engine_renderer.hpp"
 
 namespace engine {
@@ -52,11 +53,10 @@ namespace engine {
             std::shared_ptr<EngineSwapChain> oldSwapChain = std::move (engineSwapChain);
             engineSwapChain = std::make_unique<EngineSwapChain>(engineDevice, extent, oldSwapChain);
 
-            if(!oldSwapChain->compareSwapFormats (*engineSwapChain.get())) {
+            if(!oldSwapChain->compareSwapFormats (*engineSwapChain)) {
                 throw std::runtime_error ("Swap chain image (or depth) format has changed!");
             }
         }
-        //TODO
     }
 
     VkCommandBuffer EngineRenderer::beginFrame () {
