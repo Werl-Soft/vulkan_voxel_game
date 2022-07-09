@@ -48,22 +48,25 @@ target_link_libraries(Engine_App PUBLIC Vulkan::Vulkan glm::glm nlohmann_json::n
 target_link_libraries(Engine_App PUBLIC glfw)
 target_link_libraries(Engine_App PRIVATE spdlog::spdlog)
 
-add_custom_command(TARGET Engine_App POST_BUILD
+add_custom_target(MakeDirectoryStructure
         COMMAND ${CMAKE_COMMAND} -E make_directory assets
         COMMAND ${CMAKE_COMMAND} -E make_directory assets/shaders
         COMMAND ${CMAKE_COMMAND} -E make_directory assets/textures
         COMMAND ${CMAKE_COMMAND} -E make_directory assets/models)
 
 # Move Assets
-add_custom_command(TARGET Engine_App POST_BUILD
+add_custom_target(CopyAssets
         COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/assets/textures assets/textures
         COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/assets/models assets/models)
+add_dependencies(CopyAssets MakeDirectoryStructure)
 
 # Create Shaders
 add_custom_target(BuildShaders
         COMMAND glslc ${CMAKE_SOURCE_DIR}/assets/shaders/simple_shader.frag -o assets/shaders/simple_shader.frag.spv
         COMMAND glslc ${CMAKE_SOURCE_DIR}/assets/shaders/simple_shader.vert -o assets/shaders/simple_shader.vert.spv
         BYPRODUCTS assets/shaders/simple_shader.frag assets/shaders/simple_shader.vert)
+add_dependencies(BuildShaders CopyAssets)
+
 
 add_custom_command(TARGET Engine_App POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_RUNTIME_DLLS:Engine_App> $<TARGET_FILE_DIR:Engine_App>
