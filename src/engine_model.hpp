@@ -6,6 +6,7 @@
 #define BASIC_TESTS_ENGINE_MODEL_HPP
 
 #include "engine_device.hpp"
+#include "engine_buffer.hpp"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -57,13 +58,11 @@ namespace engine {
 
         EngineDevice &engineDevice;
 
-        VkBuffer vertexBuffer;
-        VkDeviceMemory vertexBufferMemory;
+       std::unique_ptr<EngineBuffer> vertexBuffer;
         uint32_t vertexCount;
 
         bool hasIndexBuffer = false;
-        VkBuffer indexBuffer;
-        VkDeviceMemory indexBufferMemory;
+        std::unique_ptr<EngineBuffer> indexBuffer;
         uint32_t indexCount;
     };
 

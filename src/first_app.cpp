@@ -3,7 +3,7 @@
 //
 
 #include "first_app.hpp"
-#include "simple_render_system.hpp"
+#include "systems/simple_render_system.hpp"
 #include "engine_camera.hpp"
 #include "keyboard_movement_controller.hpp"
 
@@ -16,11 +16,46 @@
 
 namespace engine {
     void FirstApp::run () {
-        SimpleRenderSystem simpleRenderSystem{engineDevice, engineRenderer.getSwapchainRenderpass()};
+        std::vector<std::unique_ptr<EngineBuffer>> uboBuffers(EngineSwapChain::MAX_FRAMES_IN_FLIGHT);
+
+        for (auto & uboBuffer : uboBuffers) {
+            uboBuffer = std::make_unique<EngineBuffer>(
+                    engineDevice,
+                    sizeof (GlobalUBO),
+                    1,
+                    VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+            uboBuffer->map ();
+        }
+
+        EngineBuffer globalUBOBuffer {
+            engineDevice,
+            sizeof(GlobalUBO),
+            EngineSwapChain::MAX_FRAMES_IN_FLIGHT,
+            VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+            engineDevice.properties.limits.minUniformBufferOffsetAlignment
+        };
+        globalUBOBuffer.map ();
+
+        auto globalSetLayout = EngineDescriptorSetLayout::Builder(engineDevice)
+                .addBinding (0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS)
+                .build();
+
+        std::vector<VkDescriptorSet> globalDescriptorSets (EngineSwapChain::MAX_FRAMES_IN_FLIGHT);
+        for (int i = 0; i < globalDescriptorSets.size(); i++) {
+            auto bufferInfo = uboBuffers[i]->descriptorInfo ();
+            EngineDescriptorWriter(*globalSetLayout, *globalPool)
+            .writeBuffer (0, &bufferInfo)
+            .build (globalDescriptorSets[i]);
+        }
+
+        SimpleRenderSystem simpleRenderSystem{engineDevice, engineRenderer.getSwapchainRenderpass(), globalSetLayout->getDescriptorSetLayout()};
         EngineCamera camera {};
         camera.setViewTarget (glm::vec3(-1.0f, -2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 2.5f));
 
         auto viewerObject = EngineGameObject::createGameObject();
+        viewerObject.transform.translation.z = -2.5f;
         KeyboardMovementController cameraController {};
 
         auto currentTime = std::chrono::high_resolution_clock::now();
@@ -37,11 +72,29 @@ namespace engine {
 
             float aspect = engineRenderer.getAspectRatio();
 
-            camera.setPerspectiveProjection (glm::radians (50.0f), aspect, 0.1f, 10.0f);
+            camera.setPerspectiveProjection (glm::radians (50.0f), aspect, 0.1f, 100.0f);
 
             if (auto commandBuffer = engineRenderer.beginFrame()) {
+                int frameIndex = engineRenderer.getFrameIndex();
+                EngineFrameInfo frameInfo{
+                    frameIndex,
+                    frameTime,
+                    commandBuffer,
+                    camera,
+                    globalDescriptorSets[frameIndex],
+                    gameObjects
+                };
+
+                //update
+                GlobalUBO ubo{};
+                ubo.projection = camera.getProjection();
+                ubo.view = camera.getViewMatrix();
+                uboBuffers[frameIndex]->writeToBuffer (&ubo);
+                uboBuffers[frameIndex]->flush();
+
+                //render
                 engineRenderer.beginSwapChainRenderPass (commandBuffer);
-                simpleRenderSystem.renderGameObjects (commandBuffer, gameObjects, camera);
+                simpleRenderSystem.renderGameObjects (frameInfo);
                 engineRenderer.endSwapChainRenderPass (commandBuffer);
                 engineRenderer.endFrame();
             }
@@ -50,20 +103,30 @@ namespace engine {
     }
 
     FirstApp::FirstApp () {
+        globalPool = EngineDescriptorPool::Builder(engineDevice)
+                .setMaxSets (EngineSwapChain::MAX_FRAMES_IN_FLIGHT)
+                .addPoolSize (VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, EngineSwapChain::MAX_FRAMES_IN_FLIGHT)
+                .build();
         loadGameObjects ();
     }
 
-    FirstApp::~FirstApp () {
-    }
+    FirstApp::~FirstApp () = default;
 
     void FirstApp::loadGameObjects () {
         std::shared_ptr<EngineModel> engineModel = EngineModel::createModelFromFile (engineDevice, "assets/models/smooth_vase.obj");
 
         auto gameObj = EngineGameObject::createGameObject();
         gameObj.model = engineModel;
-        gameObj.transform.translation = {0.0f, 0.5f, 2.5f};
+        gameObj.transform.translation = {0.0f, 0.5f, 0.0f};
         gameObj.transform.scale = glm::vec3 (3.0f);
 
-        gameObjects.push_back (std::move (gameObj));
+        gameObjects.emplace(gameObj.getId(), std::move (gameObj));
+
+        engineModel = EngineModel::createModelFromFile (engineDevice, "assets/models/quad.obj");
+        auto floor = EngineGameObject::createGameObject();
+        floor.model = engineModel;
+        floor.transform.translation = {0.0f, 0.5f, 0.0f};
+        floor.transform.scale = {3.0f, 1.0f, 3.0f};
+        gameObjects.emplace(floor.getId(), std::move(floor));
     }
 } // engine

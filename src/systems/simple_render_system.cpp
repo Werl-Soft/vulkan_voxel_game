@@ -4,24 +4,24 @@
 
 #include "simple_render_system.hpp"
 
-#include "first_app.hpp"
+#include "../first_app.hpp"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <glm/glm.hpp>
-#include <glm/gtc/constants.hpp>
+#include "glm/glm.hpp"
+#include "glm/gtc/constants.hpp"
 
 #include <chrono>
 #include <iostream>
 
 namespace engine {
     struct SimplePushConstantData {
-        glm::mat4 transform {1.0f};
+        glm::mat4 modelMatrix {1.0f};
         glm::mat4 normalMatrix{1.0f};
     };
 
-    SimpleRenderSystem::SimpleRenderSystem (EngineDevice &device, VkRenderPass renderPass) : engineDevice{device} {
-        createPipelineLayout();
+    SimpleRenderSystem::SimpleRenderSystem (EngineDevice &device, VkRenderPass renderPass, VkDescriptorSetLayout globalSetLayout) : engineDevice{device} {
+        createPipelineLayout(globalSetLayout);
         createPipeline(renderPass);
     }
 
@@ -29,16 +29,18 @@ namespace engine {
         vkDestroyPipelineLayout (engineDevice.device(), pipelineLayout, nullptr);
     }
 
-    void SimpleRenderSystem::createPipelineLayout () {
+    void SimpleRenderSystem::createPipelineLayout (VkDescriptorSetLayout globalSetLayout) {
         VkPushConstantRange pushConstantRange {};
         pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
         pushConstantRange.offset = 0;
         pushConstantRange.size = sizeof (SimplePushConstantData);
 
+        std::vector<VkDescriptorSetLayout> descriptorSetLayouts{globalSetLayout};
+
         VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo {};
         pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        pipelineLayoutCreateInfo.setLayoutCount = 0;
-        pipelineLayoutCreateInfo.pSetLayouts = nullptr;
+        pipelineLayoutCreateInfo.setLayoutCount = static_cast<uint32_t>(descriptorSetLayouts.size());
+        pipelineLayoutCreateInfo.pSetLayouts = descriptorSetLayouts.data();
         pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
         pipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
 
@@ -60,26 +62,36 @@ namespace engine {
 
     }
 
-    void SimpleRenderSystem::renderGameObjects (VkCommandBuffer commandBuffer, std::vector<EngineGameObject> &gameObjects, const EngineCamera &camera) {
-        enginePipeline->bind (commandBuffer);
+    void SimpleRenderSystem::renderGameObjects (EngineFrameInfo &frameInfo) {
+        enginePipeline->bind (frameInfo.commandBuffer);
 
-        auto projectionView = camera.getProjection () * camera.getViewMatrix ();
+        vkCmdBindDescriptorSets (frameInfo.commandBuffer,
+                                 VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                 pipelineLayout,
+                                 0,
+                                 1,
+                                 &frameInfo.globalDescriptorSet,
+                                 0,
+                                 nullptr);
 
-        for (auto& obj : gameObjects) {
+        for (auto& kv : frameInfo.gameObjects) {
+            auto& obj = kv.second;
+
+            if (obj.model == nullptr) continue;
+
             SimplePushConstantData push {};
-            auto modelMatrix = obj.transform.mat4();
-            push.transform = projectionView * modelMatrix;
+            push.modelMatrix = obj.transform.mat4();
             push.normalMatrix = obj.transform.normalMatrix();
 
             vkCmdPushConstants (
-                    commandBuffer,
+                    frameInfo.commandBuffer,
                     pipelineLayout,
                     VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
                     0,
                     sizeof (SimplePushConstantData),
                     &push);
-            obj.model->bind (commandBuffer);
-            obj.model->draw (commandBuffer);
+            obj.model->bind (frameInfo.commandBuffer);
+            obj.model->draw (frameInfo.commandBuffer);
         }
     }
 }

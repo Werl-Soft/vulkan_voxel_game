@@ -5,10 +5,11 @@
 #ifndef VULKANENGINE_SIMPLE_RENDER_SYSTEM_HPP
 #define VULKANENGINE_SIMPLE_RENDER_SYSTEM_HPP
 
-#include "engine_pipeline.hpp"
-#include "engine_device.hpp"
-#include "engine_game_object.hpp"
-#include "engine_camera.hpp"
+#include "../engine_pipeline.hpp"
+#include "../engine_device.hpp"
+#include "../engine_game_object.hpp"
+#include "../engine_camera.hpp"
+#include "../engine_frame_info.hpp"
 
 // std
 #include <memory>
@@ -16,17 +17,17 @@
 namespace engine {
     class SimpleRenderSystem {
     public:
-        SimpleRenderSystem (EngineDevice &device, VkRenderPass renderPass);
+        SimpleRenderSystem (EngineDevice &device, VkRenderPass renderPass, VkDescriptorSetLayout globalSetLayout);
         virtual ~SimpleRenderSystem ();
 
         SimpleRenderSystem(const SimpleRenderSystem &) = delete;
         SimpleRenderSystem operator=(const SimpleRenderSystem &) = delete;
 
-        void renderGameObjects (VkCommandBuffer commandBuffer, std::vector<EngineGameObject> &gameObjects, const EngineCamera &camera);
+        void renderGameObjects (EngineFrameInfo &frameInfo);
 
 
     private:
-        void createPipelineLayout();
+        void createPipelineLayout(VkDescriptorSetLayout globalSetLayout);
         void createPipeline(VkRenderPass renderPass);
 
         EngineDevice &engineDevice;

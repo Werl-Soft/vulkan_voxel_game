@@ -9,11 +9,22 @@
 #include "engine_device.hpp"
 #include "engine_game_object.hpp"
 #include "engine_renderer.hpp"
+#include "engine_buffer.hpp"
+#include "engine_descriptors.hpp"
 
 // std
 #include <memory>
 
 namespace engine {
+
+    struct GlobalUBO {
+        glm::mat4 projection{1.0f};
+        glm::mat4 view{1.0f};
+        glm::vec4 ambientLightColor{1.0f, 1.0f, 1.0f, 0.05f}; // w is light intensity
+        glm::vec3 lightPosition {-1.0f};
+        alignas(16) glm::vec4 lightColor{1.0f}; // w is light intensity
+    };
+
     class FirstApp {
     public:
         static constexpr int WIDTH = 800;
@@ -34,7 +45,9 @@ namespace engine {
         EngineDevice engineDevice{engineWindow};
         EngineRenderer engineRenderer{engineWindow, engineDevice};
 
-        std::vector<EngineGameObject> gameObjects;
+        // note: order of declarations matter
+        std::unique_ptr<EngineDescriptorPool> globalPool{};
+        EngineGameObject::Map gameObjects;
     };
 }
 
