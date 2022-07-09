@@ -2,8 +2,8 @@
 // Created by Peter Lewis on 2022-07-06.
 //
 
-#ifndef VULKANENGINE_ENGINEUTILS_H
-#define VULKANENGINE_ENGINEUTILS_H
+#ifndef VULKANENGINE_ENGINE_UTILS_HPP
+#define VULKANENGINE_ENGINE_UTILS_HPP
 
 #include <functional>
 
@@ -18,4 +18,4 @@ namespace engine {
 
 } // engine
 
-#endif //VULKANENGINE_ENGINEUTILS_H
+#endif //VULKANENGINE_ENGINE_UTILS_HPP

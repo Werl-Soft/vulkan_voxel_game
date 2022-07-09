@@ -3,7 +3,7 @@
 //
 
 #include "engine_model.hpp"
-#include "EngineUtils.h"
+#include "engine_utils.hpp"
 
 //libs
 #define TINYOBJLOADER_IMPLEMENTATION // define this in only *one* .cc
