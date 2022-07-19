@@ -61,7 +61,7 @@ foreach(GLSL ${GLSL_SOURCE_FILES})
     set(SPIRV "assets/shaders/${FILE_NAME}.spv")
     add_custom_command(
             OUTPUT ${SPIRV}
-            COMMAND glslc -V ${GLSL} -o ${SPIRV}
+            COMMAND glslc ${GLSL} -o ${SPIRV}
             DEPENDS ${GLSL}
             BYPRODUCTS ${SPIRV})
     list(APPEND SPIRV_BINARY_FILES ${SPIRV})
