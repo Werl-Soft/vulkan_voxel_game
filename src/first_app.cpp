@@ -4,6 +4,7 @@
 
 #include "first_app.hpp"
 #include "systems/simple_render_system.hpp"
+#include "systems/point_light_system.hpp"
 #include "engine_camera.hpp"
 #include "keyboard_movement_controller.hpp"
 
@@ -51,6 +52,8 @@ namespace engine {
         }
 
         system::SimpleRenderSystem simpleRenderSystem{engineDevice, engineRenderer.getSwapchainRenderpass(), globalSetLayout->getDescriptorSetLayout()};
+        system::PointLightSystem pointLightSystem{engineDevice, engineRenderer.getSwapchainRenderpass(), globalSetLayout->getDescriptorSetLayout()};
+
         EngineCamera camera {};
         camera.setViewTarget (glm::vec3(-1.0f, -2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 2.5f));
 
@@ -89,12 +92,14 @@ namespace engine {
                 GlobalUBO ubo{};
                 ubo.projection = camera.getProjection();
                 ubo.view = camera.getViewMatrix();
+                pointLightSystem.update (frameInfo, ubo);
                 uboBuffers[frameIndex]->writeToBuffer (&ubo);
                 uboBuffers[frameIndex]->flush();
 
                 //render
                 engineRenderer.beginSwapChainRenderPass (commandBuffer);
                 simpleRenderSystem.renderGameObjects (frameInfo);
+                pointLightSystem.render (frameInfo);
                 engineRenderer.endSwapChainRenderPass (commandBuffer);
                 engineRenderer.endFrame();
             }
@@ -128,5 +133,23 @@ namespace engine {
         floor.transform.translation = {0.0f, 0.5f, 0.0f};
         floor.transform.scale = {3.0f, 1.0f, 3.0f};
         gameObjects.emplace(floor.getId(), std::move(floor));
+
+        std::vector<glm::vec3> lightColors{
+                {1.f, .1f, .1f},
+                {.1f, .1f, 1.f},
+                {.1f, 1.f, .1f},
+                {1.f, 1.f, .1f},
+                {.1f, 1.f, 1.f},
+                {1.f, 1.f, 1.f}  //
+        };
+
+        for (int i = 0; i < lightColors.size(); i++) {
+            auto pointLight = EngineGameObject::makePointLight (0.2);
+            pointLight.color = lightColors[i];
+            auto rotateLight = glm::rotate (glm::mat4(1.0f), i * glm::two_pi<float>() / lightColors.size(), {0.0f, -1.0f, 0.0f});
+            pointLight.transform.translation = glm::vec3(rotateLight * glm::vec4(-1.0f, -1.0f, -1.0f, 1.0f));
+
+            gameObjects.emplace (pointLight.getId(), std::move (pointLight));
+        }
     }
 } // engine

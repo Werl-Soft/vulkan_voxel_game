@@ -17,14 +17,6 @@
 
 namespace engine {
 
-    struct GlobalUBO {
-        glm::mat4 projection{1.0f};
-        glm::mat4 view{1.0f};
-        glm::vec4 ambientLightColor{1.0f, 1.0f, 1.0f, 0.05f}; // w is light intensity
-        glm::vec3 lightPosition {-1.0f};
-        alignas(16) glm::vec4 lightColor{1.0f}; // w is light intensity
-    };
-
     class FirstApp {
     public:
         static constexpr int WIDTH = 800;

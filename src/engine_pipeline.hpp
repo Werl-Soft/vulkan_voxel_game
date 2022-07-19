@@ -12,6 +12,8 @@
 
 namespace engine {
     struct PipelineConfigInfo {
+        std::vector<VkVertexInputBindingDescription> bindingDescriptions{};
+        std::vector<VkVertexInputAttributeDescription> attributeDiscriptions{};
         VkPipelineViewportStateCreateInfo viewportInfo;
         VkPipelineInputAssemblyStateCreateInfo inputAssemblyInfo {};
         VkPipelineRasterizationStateCreateInfo rasterizationInfo {};

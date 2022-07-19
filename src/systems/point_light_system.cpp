@@ -15,9 +15,11 @@
 #include <iostream>
 
 namespace engine::system {
-    struct SimplePushConstantData {
-        glm::mat4 modelMatrix {1.0f};
-        glm::mat4 normalMatrix{1.0f};
+
+    struct PointLightPushConstants {
+        glm::vec4 position{};
+        glm::vec4 color{};
+        float radius;
     };
 
     PointLightSystem::PointLightSystem (EngineDevice &device, VkRenderPass renderPass, VkDescriptorSetLayout globalSetLayout) : engineDevice{device} {
@@ -30,10 +32,10 @@ namespace engine::system {
     }
 
     void PointLightSystem::createPipelineLayout (VkDescriptorSetLayout globalSetLayout) {
-//        VkPushConstantRange pushConstantRange {};
-//        pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-//        pushConstantRange.offset = 0;
-//        pushConstantRange.size = sizeof (SimplePushConstantData);
+        VkPushConstantRange pushConstantRange {};
+        pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+        pushConstantRange.offset = 0;
+        pushConstantRange.size = sizeof (PointLightPushConstants);
 
         std::vector<VkDescriptorSetLayout> descriptorSetLayouts{globalSetLayout};
 
@@ -41,8 +43,8 @@ namespace engine::system {
         pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         pipelineLayoutCreateInfo.setLayoutCount = static_cast<uint32_t>(descriptorSetLayouts.size());
         pipelineLayoutCreateInfo.pSetLayouts = descriptorSetLayouts.data();
-        pipelineLayoutCreateInfo.pushConstantRangeCount = 0;
-        pipelineLayoutCreateInfo.pPushConstantRanges = nullptr;
+        pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
+        pipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
 
         if (vkCreatePipelineLayout (engineDevice.device(), &pipelineLayoutCreateInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
             throw std::runtime_error ("Failed to create pipeline layout!");
@@ -55,6 +57,8 @@ namespace engine::system {
 
         PipelineConfigInfo pipelineConfig{};
         EnginePipeline::defaultPipelineConfigInfo (pipelineConfig);
+        pipelineConfig.attributeDiscriptions.clear();
+        pipelineConfig.bindingDescriptions.clear();
         pipelineConfig.renderPass = renderPass;
         pipelineConfig.pipelineLayout = pipelineLayout;
 
@@ -78,6 +82,45 @@ namespace engine::system {
                                  0,
                                  nullptr);
 
-        vkCmdDraw (frameInfo.commandBuffer, 6, 1, 0, 0);
+        for (auto &kv: frameInfo.gameObjects) {
+            auto &obj = kv.second;
+            if (obj.pointLight == nullptr)
+                continue;
+
+            PointLightPushConstants push{};
+            push.position = glm::vec4(obj.transform.translation, 1.0f);
+            push.color = glm::vec4(obj.color, obj.pointLight->lightIntensity);
+            push.radius = obj.transform.scale.x;
+
+            vkCmdPushConstants (
+                    frameInfo.commandBuffer,
+                    pipelineLayout,
+                    VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                    0,
+                    sizeof (PointLightPushConstants),
+                    &push);
+
+            vkCmdDraw (frameInfo.commandBuffer, 6, 1, 0, 0);
+        }
+
     }
-} // system
+
+    void PointLightSystem::update (EngineFrameInfo &frameInfo, GlobalUBO &ubo) {
+        auto rotateLight = glm::rotate (glm::mat4(1.0f), frameInfo.frameTime, {0.0f, -1.0f, 0.0f});
+        int lightIndex = 0;
+        for (auto& kv : frameInfo.gameObjects) {
+            auto& obj = kv.second;
+            if (obj.pointLight == nullptr)
+                continue;
+            // update light position
+            obj.transform.translation = glm::vec3(rotateLight * glm::vec4(obj.transform.translation, 1.0f));
+
+            // copy light to UBO
+            ubo.pointLights[lightIndex].position = glm::vec4(obj.transform.translation, 1.0f);
+            ubo.pointLights[lightIndex].color = glm::vec4(obj.color, obj.pointLight->lightIntensity);
+
+            lightIndex += 1;
+        }
+        ubo.numLights = lightIndex;
+    }
+} // engine::system

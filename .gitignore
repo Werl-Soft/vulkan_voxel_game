@@ -175,3 +175,5 @@ fabric.properties
 #ignore SPV files
 *.spv
 
+-assets/**/*.obj
+

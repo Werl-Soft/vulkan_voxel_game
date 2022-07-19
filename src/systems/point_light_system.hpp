@@ -21,6 +21,7 @@ namespace engine::system {
         PointLightSystem(const PointLightSystem &) = delete;
         PointLightSystem operator=(const PointLightSystem &) = delete;
 
+        void update(EngineFrameInfo &frameInfo, GlobalUBO &ubo);
         void render (EngineFrameInfo &frameInfo);
 
 
