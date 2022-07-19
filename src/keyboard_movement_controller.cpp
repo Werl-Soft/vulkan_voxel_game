@@ -15,9 +15,9 @@ namespace engine {
         if (glfwGetKey (window, keys.lookLeft) == GLFW_PRESS)
             rotate.y -= 1.0f;
         if (glfwGetKey (window, keys.lookUp) == GLFW_PRESS)
-            rotate.z += 1.0f;
+            rotate.x += 1.0f;
         if (glfwGetKey (window, keys.lookDown) == GLFW_PRESS)
-            rotate.z  -= 1.0f;
+            rotate.x  -= 1.0f;
 
         if (glm::dot (rotate, rotate) > std::numeric_limits<float>::epsilon())
             gameObject.transform.rotation += lookSpeed * dt * glm::normalize (rotate);
