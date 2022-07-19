@@ -14,7 +14,7 @@
 // std
 #include <memory>
 
-namespace engine {
+namespace engine::system {
     class SimpleRenderSystem {
     public:
         SimpleRenderSystem (EngineDevice &device, VkRenderPass renderPass, VkDescriptorSetLayout globalSetLayout);
@@ -35,7 +35,7 @@ namespace engine {
         std::unique_ptr<EnginePipeline> enginePipeline;
         VkPipelineLayout pipelineLayout;
     };
-}
+} // engine::system
 
 
 #endif //VULKANENGINE_SIMPLE_RENDER_SYSTEM_HPP

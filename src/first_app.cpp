@@ -50,7 +50,7 @@ namespace engine {
             .build (globalDescriptorSets[i]);
         }
 
-        SimpleRenderSystem simpleRenderSystem{engineDevice, engineRenderer.getSwapchainRenderpass(), globalSetLayout->getDescriptorSetLayout()};
+        system::SimpleRenderSystem simpleRenderSystem{engineDevice, engineRenderer.getSwapchainRenderpass(), globalSetLayout->getDescriptorSetLayout()};
         EngineCamera camera {};
         camera.setViewTarget (glm::vec3(-1.0f, -2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 2.5f));
 

@@ -14,7 +14,7 @@
 #include <chrono>
 #include <iostream>
 
-namespace engine {
+namespace engine::system {
     struct SimplePushConstantData {
         glm::mat4 modelMatrix {1.0f};
         glm::mat4 normalMatrix{1.0f};
@@ -94,4 +94,4 @@ namespace engine {
             obj.model->draw (frameInfo.commandBuffer);
         }
     }
-}
+} // engine::system
