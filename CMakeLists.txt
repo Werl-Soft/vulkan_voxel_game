@@ -52,14 +52,24 @@ add_custom_target(CopyAssets
 add_dependencies(CopyAssets MakeDirectoryStructure)
 
 # Create Shaders
-add_custom_target(BuildShaders
-        COMMAND glslc ${CMAKE_SOURCE_DIR}/assets/shaders/simple_shader.frag -o assets/shaders/simple_shader.frag.spv
-        COMMAND glslc ${CMAKE_SOURCE_DIR}/assets/shaders/simple_shader.vert -o assets/shaders/simple_shader.vert.spv
-        BYPRODUCTS assets/shaders/simple_shader.frag.spv assets/shaders/simple_shader.vert.spv)
-add_dependencies(BuildShaders CopyAssets)
+file(GLOB_RECURSE GLSL_SOURCE_FILES
+        "${PROJECT_SOURCE_DIR}/assets/shaders/*.vert"
+        "${PROJECT_SOURCE_DIR}/assets/shaders/*.frag")
 
+foreach(GLSL ${GLSL_SOURCE_FILES})
+    get_filename_component(FILE_NAME ${GLSL} NAME)
+    set(SPIRV "assets/shaders/${FILE_NAME}.spv")
+    add_custom_command(
+            OUTPUT ${SPIRV}
+            COMMAND glslc -V ${GLSL} -o ${SPIRV}
+            DEPENDS ${GLSL}
+            BYPRODUCTS ${SPIRV})
+    list(APPEND SPIRV_BINARY_FILES ${SPIRV})
+endforeach(GLSL)
 
+add_custom_target(BuildShaders DEPENDS ${SPIRV_BINARY_FILES})
+
+# Copy dynamic libs
 add_custom_command(TARGET Engine_App POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_RUNTIME_DLLS:Engine_App> $<TARGET_FILE_DIR:Engine_App>
-        COMMAND_EXPAND_LISTS
-        )
+        COMMAND_EXPAND_LISTS)
