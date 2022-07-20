@@ -12,6 +12,10 @@
 
 namespace engine {
     struct PipelineConfigInfo {
+        PipelineConfigInfo() = default;
+        PipelineConfigInfo(const PipelineConfigInfo&) = delete;
+        PipelineConfigInfo& operator=(const PipelineConfigInfo&) = delete;
+
         std::vector<VkVertexInputBindingDescription> bindingDescriptions{};
         std::vector<VkVertexInputAttributeDescription> attributeDiscriptions{};
         VkPipelineViewportStateCreateInfo viewportInfo;

@@ -21,10 +21,12 @@ namespace engine {
 
         [[nodiscard]] const glm::mat4& getProjection() const { return projectionMatrix; }
         [[nodiscard]] const glm::mat4 &getViewMatrix () const;
+        [[nodiscard]] const glm::mat4 &getInverseViewMatrix () const { return inverseViewMatrix; }
 
     private:
         glm::mat4 projectionMatrix{1.0f};
         glm::mat4 viewMatrix{1.0f};
+        glm::mat4 inverseViewMatrix{1.0f};
     };
 } // engine
 
