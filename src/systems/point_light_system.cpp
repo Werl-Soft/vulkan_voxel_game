@@ -57,7 +57,7 @@ namespace engine::system {
 
         PipelineConfigInfo pipelineConfig{};
         EnginePipeline::defaultPipelineConfigInfo (pipelineConfig);
-        pipelineConfig.attributeDiscriptions.clear();
+        pipelineConfig.attributeDescriptions.clear ();
         pipelineConfig.bindingDescriptions.clear();
         pipelineConfig.renderPass = renderPass;
         pipelineConfig.pipelineLayout = pipelineLayout;
