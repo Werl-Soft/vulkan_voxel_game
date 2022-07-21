@@ -120,13 +120,18 @@ namespace engine {
 
     void FirstApp::loadGameObjects () {
         std::shared_ptr<EngineModel> engineModel = EngineModel::createModelFromFile (engineDevice, "assets/models/smooth_vase.obj");
-
         auto gameObj = EngineGameObject::createGameObject();
         gameObj.model = engineModel;
-        gameObj.transform.translation = {0.0f, 0.5f, 0.0f};
+        gameObj.transform.translation = {-0.5f, 0.5f, 0.0f};
         gameObj.transform.scale = glm::vec3 (3.0f);
-
         gameObjects.emplace(gameObj.getId(), std::move (gameObj));
+
+        engineModel = EngineModel::createModelFromFile (engineDevice, "assets/models/flat_vase.obj");
+        auto flatVase = EngineGameObject::createGameObject();
+        flatVase.model = engineModel;
+        flatVase.transform.translation = {0.5f, 0.5f, 0.0f};
+        flatVase.transform.scale = {3.0f, 1.5f, 3.0f};
+        gameObjects.emplace(flatVase.getId(), std::move(flatVase));
 
         engineModel = EngineModel::createModelFromFile (engineDevice, "assets/models/quad.obj");
         auto floor = EngineGameObject::createGameObject();
