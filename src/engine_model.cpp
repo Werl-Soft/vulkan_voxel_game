@@ -6,10 +6,15 @@
 #include "engine_utils.hpp"
 
 //libs
-#define TINYOBJLOADER_IMPLEMENTATION // define this in only *one* .cc
+#define TINYOBJLOADER_IMPLEMENTATION
 // Optional. define TINYOBJLOADER_USE_MAPBOX_EARCUT gives robust trinagulation. Requires C++11
 #define TINYOBJLOADER_USE_MAPBOX_EARCUT
 #include "tiny_obj_loader.h"
+
+#define TINYGLTF_IMPLEMENTATION
+#include <nlohmann/json.hpp>
+#include <tiny_gltf.h>
+
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/hash.hpp>
 
@@ -150,6 +155,7 @@ namespace engine {
 
         if (!tinyobj::LoadObj (&attrib, &shapes, &materials, &warn, &err, filepath.c_str())) {
             spdlog::error ("Failed to load \"{}\" because: {} {}", filepath, warn, err);
+            return;
         }
 
         vertices.clear();
@@ -196,5 +202,62 @@ namespace engine {
                 indices.push_back (uniqueVerts[vertex]);
             }
         }
+    }
+
+    void EngineModel::Builder::loadModelGLTF (const std::string &filepath, bool isBinary) {
+        /*tinygltf::Model model;
+        tinygltf::TinyGLTF loader;
+        std::string err, warn;
+        bool ret;
+
+        if (isBinary) {
+            ret = loader.LoadBinaryFromFile (&model, &err, &warn, filepath);
+        } else {
+            ret = loader.LoadASCIIFromFile (&model, &err, &warn, filepath);
+        }
+
+        if (!ret)  {
+            spdlog::error("Failed to load \"{}\" because: \n\t{} \n\t{}", filepath, warn, err);
+            return;
+        }
+
+        tinygltf::Mesh mesh = model.meshes[0];
+
+        for(int i = 0; i < model.bufferViews.size(); i++) {
+            const tinygltf::BufferView &bufferView = model.bufferViews[i];
+
+            if(bufferView.target == 0) {
+                spdlog::warn ("bufferView.target is zero");
+                continue;
+            }
+
+            const tinygltf::Buffer &buffer = model.buffers[bufferView.buffer];
+
+            for (int i = 0; i < mesh.primitives.size(); i++) {
+                tinygltf::Primitive primitive = mesh.primitives[i];
+                tinygltf::Accessor indexAccessor = model.accessors[primitive.indices];
+
+                for (auto &attrib : primitive.attributes) {
+                    tinygltf::Accessor accessor = model.accessors[attrib.second];
+                    int byteStride = accessor.ByteStride (model.bufferViews[accessor.bufferView]);
+
+                    int size = 1;
+                    if (accessor.type != TINYGLTF_TYPE_SCALAR) {
+                        size = accessor.type;
+                    }
+
+                    union floatMaker {
+                        unsigned char chars[4];
+                        float value;
+                    };
+
+                    floatMaker maker = {};
+                    int mark = 0;
+                    for (auto value : buffer.data)
+                    }
+                }
+            }
+        }*/
+
     }
 } // engine

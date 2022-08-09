@@ -39,6 +39,7 @@ namespace engine {
             std::vector<uint32_t> indices{};
 
             void loadModel(const std::string &filepath);
+            void loadModelGLTF(const std::string &filepath, bool isBinary);
         };
 
         EngineModel (EngineDevice &device, const Builder &builder);
@@ -58,7 +59,7 @@ namespace engine {
 
         EngineDevice &engineDevice;
 
-       std::unique_ptr<EngineBuffer> vertexBuffer;
+        std::unique_ptr<EngineBuffer> vertexBuffer;
         uint32_t vertexCount;
 
         bool hasIndexBuffer = false;

@@ -1,0 +1,123 @@
+{
+    "asset" : {
+        "generator" : "Khronos glTF Blender I/O v1.6.16",
+        "version" : "2.0"
+    },
+    "scene" : 0,
+    "scenes" : [
+        {
+            "name" : "Scene",
+            "nodes" : [
+                0
+            ]
+        }
+    ],
+    "nodes" : [
+        {
+            "mesh" : 0,
+            "name" : "ceramic_vase_01_Cylinder.009",
+            "rotation" : [
+                0,
+                -0.7071068286895752,
+                0.7071067094802856,
+                -3.0908616110991716e-08
+            ]
+        }
+    ],
+    "materials" : [
+        {
+            "doubleSided" : true,
+            "name" : "ceramic_vase_01",
+            "pbrMetallicRoughness" : {
+                "baseColorFactor" : [
+                    0.800000011920929,
+                    0.800000011920929,
+                    0.800000011920929,
+                    1
+                ],
+                "metallicFactor" : 0,
+                "roughnessFactor" : 0.5
+            }
+        }
+    ],
+    "meshes" : [
+        {
+            "name" : "ceramic_vase_01_Cylinder.009",
+            "primitives" : [
+                {
+                    "attributes" : {
+                        "POSITION" : 0,
+                        "NORMAL" : 1,
+                        "TEXCOORD_0" : 2
+                    },
+                    "indices" : 3,
+                    "material" : 0
+                }
+            ]
+        }
+    ],
+    "accessors" : [
+        {
+            "bufferView" : 0,
+            "componentType" : 5126,
+            "count" : 5545,
+            "max" : [
+                0.10181699693202972,
+                -0.00120900000911206,
+                0.10181800276041031
+            ],
+            "min" : [
+                -0.10181699693202972,
+                -0.40147700905799866,
+                -0.10181800276041031
+            ],
+            "type" : "VEC3"
+        },
+        {
+            "bufferView" : 1,
+            "componentType" : 5126,
+            "count" : 5545,
+            "type" : "VEC3"
+        },
+        {
+            "bufferView" : 2,
+            "componentType" : 5126,
+            "count" : 5545,
+            "type" : "VEC2"
+        },
+        {
+            "bufferView" : 3,
+            "componentType" : 5123,
+            "count" : 30888,
+            "type" : "SCALAR"
+        }
+    ],
+    "bufferViews" : [
+        {
+            "buffer" : 0,
+            "byteLength" : 66540,
+            "byteOffset" : 0
+        },
+        {
+            "buffer" : 0,
+            "byteLength" : 66540,
+            "byteOffset" : 66540
+        },
+        {
+            "buffer" : 0,
+            "byteLength" : 44360,
+            "byteOffset" : 133080
+        },
+        {
+            "buffer" : 0,
+            "byteLength" : 61776,
+            "byteOffset" : 177440
+        }
+    ],
+    "buffers" : [
+        {
+            "byteLength" : 239216,
+            "uri" : "smooth_vase.bin"
+        }
+    ]
+}
