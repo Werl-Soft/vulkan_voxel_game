@@ -15,6 +15,8 @@
 
 #include <spdlog/spdlog.h>
 
+#include <FastNoise/FastNoise.h>
+
 //std
 #include <cassert>
 #include <unordered_map>
@@ -54,7 +56,6 @@ namespace engine {
     EngineModel::EngineModel (EngineDevice &device, const Builder &builder): engineDevice {device} {
         createVertexBuffer (builder.vertices);
         createIndexBuffer (builder.indices);
-
     }
 
     EngineModel::~EngineModel () = default;
@@ -142,6 +143,13 @@ namespace engine {
         return std::make_unique<EngineModel>(device, builder);
     }
 
+    std::unique_ptr<EngineModel> EngineModel::createModelFromNoise (EngineDevice &device, int xSize, int zSize) {
+        Builder builder{};
+        builder.loadNoise (xSize, zSize);
+        spdlog::info ("Vertex Count: {}", builder.vertices.size());
+        return std::make_unique<EngineModel>(device, builder);
+    }
+
     void EngineModel::Builder::loadModel (const std::string &filepath) {
         tinyobj::attrib_t attrib;
         std::vector<tinyobj::shape_t> shapes;
@@ -196,5 +204,48 @@ namespace engine {
                 indices.push_back (uniqueVerts[vertex]);
             }
         }
+    }
+
+    void EngineModel::Builder::loadNoise (int sizeX, int sizeY) {
+        loadNoise (sizeX, sizeY, "DQAFAAAAAAAAQAgAAAAAAD8AAAAAAA==");
+    }
+
+    void EngineModel::Builder::loadNoise (int sizeX, int sizeY, const std::string& encodedNoise) {
+        spdlog::info ("creating noise function");
+        FastNoise::SmartNode<> fnGenerator = FastNoise::NewFromEncodedNodeTree (encodedNoise.c_str());
+
+        std::vector<float> noiseOutput(sizeX * sizeY);
+
+        spdlog::info ("starting noise generation");
+        fnGenerator->GenUniformGrid2D (noiseOutput.data(), 0, 0, sizeX, sizeY, 0.2, 1337);
+        spdlog::info ("finished noise generation");
+
+        vertices.clear();
+        indices.clear();
+
+        int index = 0;
+        for (int x = 0; x < sizeX; x++) {
+            for (int y = 0; y < sizeY; y++) {
+                Vertex vertex{};
+
+                vertex.position = {x, noiseOutput[index++], y};
+                vertex.color = {1.0f, 1.0f, 1.0f};
+                vertex.normal = glm::vec3(0.0f, 0.0f, 1.0f);
+
+                vertices.push_back (vertex);
+
+                if (x == sizeX - 1 || y == sizeY - 1) {
+                    continue;
+                }
+
+                indices.push_back (sizeX * x + y);
+                indices.push_back (sizeX * x + y + 1);
+                indices.push_back (sizeX * (x + 1) + y + 1);
+                indices.push_back (sizeX * (x + 1) + y + 1);
+                indices.push_back (sizeX * (x + 1) + y);
+                indices.push_back (sizeX * x + y);
+            }
+        }
+
     }
 } // engine

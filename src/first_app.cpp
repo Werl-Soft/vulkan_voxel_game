@@ -109,6 +109,7 @@ namespace engine {
     }
 
     FirstApp::FirstApp () {
+
         globalPool = EngineDescriptorPool::Builder(engineDevice)
                 .setMaxSets (EngineSwapChain::MAX_FRAMES_IN_FLIGHT)
                 .addPoolSize (VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, EngineSwapChain::MAX_FRAMES_IN_FLIGHT)
@@ -133,11 +134,14 @@ namespace engine {
         flatVase.transform.scale = {3.0f, 1.5f, 3.0f};
         gameObjects.emplace(flatVase.getId(), std::move(flatVase));
 
-        engineModel = EngineModel::createModelFromFile (engineDevice, "assets/models/quad.obj");
+
+
+        //engineModel = EngineModel::createModelFromFile (engineDevice, "assets/models/quad.obj");
+        engineModel = EngineModel::createModelFromNoise (engineDevice, 16, 16);
         auto floor = EngineGameObject::createGameObject();
         floor.model = engineModel;
-        floor.transform.translation = {0.0f, 0.5f, 0.0f};
-        floor.transform.scale = {3.0f, 1.0f, 3.0f};
+        floor.transform.translation = {-8.0f, 0.5f, -2.0f};
+        floor.transform.scale = {1.0f, 1.0f, 1.0f};
         gameObjects.emplace(floor.getId(), std::move(floor));
 
         std::vector<glm::vec3> lightColors{

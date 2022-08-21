@@ -39,6 +39,8 @@ namespace engine {
             std::vector<uint32_t> indices{};
 
             void loadModel(const std::string &filepath);
+            void loadNoise(int sizeX, int sizeY);
+            void loadNoise(int sizeX, int sizeY, const std::string& encodedNoise);
         };
 
         EngineModel (EngineDevice &device, const Builder &builder);
@@ -48,6 +50,7 @@ namespace engine {
         EngineModel operator=(const EngineModel &) = delete;
 
         static std::unique_ptr<EngineModel> createModelFromFile (EngineDevice &device, const std::string &filepath);
+        static std::unique_ptr<EngineModel> createModelFromNoise (EngineDevice &device, int xSize, int zSize);
 
         void bind(VkCommandBuffer commandBuffer);
         void draw(VkCommandBuffer commandBuffer);
