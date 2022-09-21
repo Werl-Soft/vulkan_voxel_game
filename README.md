@@ -14,6 +14,28 @@ This is some early tests for a game I want to make.
 - [ ] Terrain: Runtime mesh modification
 
 And much more
+## Environment
+Tested using MSYS2 with LLVM
+### MSYS2 Packages Installed
+The following packages are directly installed in addition to the default install
+* mingw-w64-x86_64-clang
+* mingw-w64-x86_64-lld
+* mingw-w64-x86_64-gdb
+* mingw-w64-x86_64-make
+* mingw-w64-x86_64-polly
+* mingw-w64-x86_64-compiler-rt
+* mingw-w64-clang-x86_64-glfw
+* mingw-w64-clang-x86_64-cmake
+* mingw-w64-clang-x86_64-nlohmann-json
+* mingw-w64-clang-x86_64-glm
+### Hardware
+#### Tested GPUs
+* Nvidia RTX 2080
+* Nvidia GTX 1650 Ti
+* Intel UHD Graphics
+#### Tested CPUs
+* AMD Ryzen 9 3900x
+* Intel i7-10750H
 ## Libraries Used
 * [FastNoise2 0.9.6](https://github.com/Auburn/FastNoise2) (submodule)
 * [GLFW 3.3.8](https://www.glfw.org/)
