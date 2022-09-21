@@ -1,13 +1,13 @@
 # Game Tests 1
 This is some early tests for a game I want to make.
 ## Progress
-- [ ] Rendering: Simple rendering
-- [ ] Engine: Spacial Awareness
+- [x] Rendering: Simple rendering
+- [x] Engine: Spacial Awareness
 - [ ] Physics: Collisions
 - [ ] Physics: Gravity
 - [ ] Terrain: Simple random terrain
 - [ ] Physics: Simple random terrain with collisions
-- [ ] Rendering: Mobile camera
+- [x] Rendering: Mobile camera
 - [ ] Physics: Camera collisions
 - [ ] Terrain: Voxel
 - [ ] Terrain: Semi infinite terrain
