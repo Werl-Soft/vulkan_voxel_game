@@ -1,15 +1,6 @@
-[submodule "libs/glfw"]
-	path = libs/glfw
-	url = git@github.com:glfw/glfw.git
 [submodule "libs/spdlog"]
 	path = libs/spdlog
 	url = git@github.com:gabime/spdlog.git
-[submodule "libs/glm"]
-	path = libs/glm
-	url = git@github.com:g-truc/glm.git
-[submodule "libs/json"]
-	path = libs/json
-	url = git@github.com:nlohmann/json.git
 [submodule "libs/FastNoise2"]
 	path = libs/FastNoise2
 	url = git@github.com:Auburn/FastNoise2.git

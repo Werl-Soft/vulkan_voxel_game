@@ -7,12 +7,7 @@ set(CMAKE_CXX_STANDARD 20)
 find_package(Vulkan REQUIRED)
 
 # Find GLFW
-set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
-set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-set(BUILD_SHARED_LIBS ON CACHE BOOL "" FORCE)
-
-add_subdirectory(libs/glfw)
+find_package(glfw3 3.3 REQUIRED)
 
 # Find spdlog
 add_subdirectory(libs/spdlog)
@@ -21,11 +16,10 @@ add_subdirectory(libs/spdlog)
 #find_package(Boost 1.76 REQUIRED COMPONENTS system container)
 
 # Find GLM
-add_subdirectory(libs/glm)
+find_package(glm 0.9.9 REQUIRED)
 
 # Find json.hpp
-set(JSON_BuildTests OFF CACHE INTERNAL "")
-add_subdirectory(libs/json)
+find_package(nlohmann_json 3.11 REQUIRED)
 
 # Find FastNoise2
 set(FASTNOISE2_NOISETOOL OFF CACHE BOOL "Build Noise Tool" FORCE)
@@ -39,8 +33,8 @@ add_executable(Engine_App src/main.cpp src/engine_window.cpp src/engine_window.h
 add_dependencies(Engine_App BuildShaders CopyAssets)
 
 # Link Libraries
-target_link_libraries(Engine_App PUBLIC Vulkan::Vulkan glm::glm nlohmann_json::nlohmann_json FastNoise)
-target_link_libraries(Engine_App PUBLIC glfw)
+target_link_libraries(Engine_App PUBLIC Vulkan::Vulkan nlohmann_json::nlohmann_json FastNoise)
+target_link_libraries(Engine_App PUBLIC glfw glm)
 target_link_libraries(Engine_App PRIVATE spdlog::spdlog)
 
 add_custom_target(MakeDirectoryStructure
