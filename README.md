@@ -44,4 +44,4 @@ The following packages are directly installed in addition to the default install
 * [spdlog 1.10.0](https://github.com/gabime/spdlog) (submodule)
 * [STB Image 2.27](https://github.com/nothings/stb) (header included)
 * [tinyobjloader 2.0.0](https://github.com/tinyobjloader/tinyobjloader) (header included)
-* [Vulkan](https://www.khronos.org/vulkan/): Tested with SDK 1.2.198.1
+* [Vulkan](https://www.khronos.org/vulkan/): Tested with SDK 1.3.224.1
