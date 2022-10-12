@@ -61,7 +61,7 @@ namespace engine {
 
         EngineDevice &engineDevice;
 
-       std::unique_ptr<EngineBuffer> vertexBuffer;
+        std::unique_ptr<EngineBuffer> vertexBuffer;
         uint32_t vertexCount;
 
         bool hasIndexBuffer = false;
