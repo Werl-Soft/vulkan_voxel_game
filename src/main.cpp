@@ -17,6 +17,7 @@ int main(int argc, char* argv[]) {
 
     spdlog::logger logger("main", {consoleSink, fileSink});
     logger.enable_backtrace (32);
+    logger.set_level (spdlog::level::trace);
     spdlog::register_logger (std::make_shared<spdlog::logger>(logger));
     spdlog::set_default_logger (spdlog::get ("main"));
 
