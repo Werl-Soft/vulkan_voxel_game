@@ -7,6 +7,7 @@
 // std
 #include <cassert>
 #include <stdexcept>
+#include <spdlog/spdlog.h>
 
 namespace engine {
 
@@ -51,7 +52,8 @@ namespace engine {
                 &descriptorSetLayoutInfo,
                 nullptr,
                 &descriptorSetLayout) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create descriptor set layout!");
+            spdlog::get ("vulkan")->critical("Failed to create descriptor set layout");
+            throw std::runtime_error("Failed to create descriptor set layout!");
         }
     }
 
@@ -98,7 +100,8 @@ namespace engine {
 
         if (vkCreateDescriptorPool(engineDevice.device(), &descriptorPoolInfo, nullptr, &descriptorPool) !=
             VK_SUCCESS) {
-            throw std::runtime_error("failed to create descriptor pool!");
+            spdlog::get ("assets")->critical ("Failed to create descriptor pool");
+            throw std::runtime_error("Failed to create descriptor pool!");
         }
     }
 

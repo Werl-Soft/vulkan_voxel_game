@@ -50,7 +50,8 @@ namespace engine {
 
     void EngineWindow::createWindowSurface (VkInstance instance, VkSurfaceKHR *surface) {
         if (glfwCreateWindowSurface (instance, window, nullptr, surface) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create window surface");
+            spdlog::critical ("Failed to create window surface");
+            throw std::runtime_error("Failed to create window surface");
         }
     }
 
@@ -59,5 +60,9 @@ namespace engine {
         engineWindow->framebufferResized = true;
         engineWindow->width = width;
         engineWindow->height = height;
+    }
+
+    void EngineWindow::glfwErrorCallback (int error_code, const char *description) {
+        spdlog::error ("GLFW Error [{}]: {}", error_code, description);
     }
 }

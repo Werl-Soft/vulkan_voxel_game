@@ -4,6 +4,7 @@
 
 #include "engine_texture.hpp"
 #include "engine_buffer.hpp"
+#include <spdlog/spdlog.h>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
@@ -119,7 +120,7 @@ void engine::EngineTexture::transitionImageLayout (VkImageLayout oldLayout, VkIm
         sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
         destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
     } else {
-        // TODO proper logging stuff
+        spdlog::get ("vulkan")->critical ("Unsupported layout transition from {} to {}", VkImageLayout(oldLayout), VkImageLayout(newLayout));
         throw std::runtime_error ("unsupported layout transition");
     }
 

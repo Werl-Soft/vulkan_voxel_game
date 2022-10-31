@@ -139,14 +139,14 @@ namespace engine {
     std::unique_ptr<EngineModel> EngineModel::createModelFromFile (EngineDevice &device, const std::string &filepath) {
         Builder builder{};
         builder.loadModel (filepath);
-        spdlog::info ("Vertex Count: {}", builder.vertices.size());
+        spdlog::get ("assets")->info ("Vertex Count: {}", builder.vertices.size());
         return std::make_unique<EngineModel>(device, builder);
     }
 
     std::unique_ptr<EngineModel> EngineModel::createModelFromNoise (EngineDevice &device, int xSize, int zSize) {
         Builder builder{};
         builder.loadNoise (xSize, zSize);
-        spdlog::info ("Vertex Count: {}", builder.vertices.size());
+        spdlog::get ("assets")->info ("Vertex Count: {}", builder.vertices.size());
         return std::make_unique<EngineModel>(device, builder);
     }
 
@@ -157,7 +157,7 @@ namespace engine {
         std::string warn, err;
 
         if (!tinyobj::LoadObj (&attrib, &shapes, &materials, &warn, &err, filepath.c_str())) {
-            spdlog::error ("Failed to load \"{}\" because: {} {}", filepath, warn, err);
+            spdlog::get ("assets")->error ("Failed to load \"{}\" because: {} {}", filepath, warn, err);
         }
 
         vertices.clear();
