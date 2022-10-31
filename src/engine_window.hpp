@@ -22,10 +22,10 @@ namespace engine {
         EngineWindow &operator=(const EngineWindow &) = delete;
 
         bool shouldClose ();
-        VkExtent2D getExtent() { return {static_cast<uint32_t>(width), static_cast<uint32_t>(height)}; }
-        bool wasWindowResized() { return framebufferResized; }
+        [[nodiscard]] VkExtent2D getExtent() const { return {static_cast<uint32_t>(width), static_cast<uint32_t>(height)}; }
+        [[nodiscard]] bool wasWindowResized() const { return framebufferResized; }
         void resetWindowResizedFlag() { framebufferResized = false; }
-        GLFWwindow *getGLFWwindow() const { return window; }
+        [[nodiscard]] GLFWwindow *getGLFWwindow() const { return window; }
 
         void createWindowSurface(VkInstance instance, VkSurfaceKHR *surface);
 

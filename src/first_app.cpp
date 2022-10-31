@@ -119,7 +119,6 @@ namespace engine {
     }
 
     FirstApp::FirstApp () {
-
         globalPool = EngineDescriptorPool::Builder(engineDevice)
                 .setMaxSets (EngineSwapChain::MAX_FRAMES_IN_FLIGHT)
                 .addPoolSize (VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, EngineSwapChain::MAX_FRAMES_IN_FLIGHT)
@@ -144,8 +143,6 @@ namespace engine {
         flatVase.transform.translation = {0.5f, 0.5f, 0.0f};
         flatVase.transform.scale = {3.0f, 1.5f, 3.0f};
         gameObjects.emplace(flatVase.getId(), std::move(flatVase));
-
-
 
         //engineModel = EngineModel::createModelFromFile (engineDevice, "assets/models/quad.obj");
         engineModel = EngineModel::createModelFromNoise (engineDevice, 16, 16);

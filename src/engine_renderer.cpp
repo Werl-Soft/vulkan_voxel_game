@@ -60,7 +60,6 @@ namespace engine {
     }
 
     VkCommandBuffer EngineRenderer::beginFrame () {
-
         assert(!isFrameStarted && "Can't call beginFrame while already in progress");
 
         auto result = engineSwapChain->acquireNextImage (&currentImageIndex);
