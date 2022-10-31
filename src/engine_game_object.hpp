@@ -41,21 +41,21 @@ namespace engine {
         return EngineGameObject{currentId++};
     };
 
-    static EngineGameObject makePointLight(float intensity = 10.0f, float radius = 0.1f, glm::vec3 color = glm::vec3(1.0f));
+        static EngineGameObject makePointLight(float intensity = 10.0f, float radius = 0.1f, glm::vec3 color = glm::vec3(1.0f));
 
-    EngineGameObject (const EngineGameObject &) = delete;
-    EngineGameObject &operator=(const EngineGameObject &) = delete;
-    EngineGameObject (EngineGameObject &&) = default;
-    EngineGameObject &operator=(EngineGameObject &&) = delete;
+        EngineGameObject (const EngineGameObject &) = delete;
+        EngineGameObject &operator=(const EngineGameObject &) = delete;
+        EngineGameObject (EngineGameObject &&) = default;
+        EngineGameObject &operator=(EngineGameObject &&) = delete;
 
-    id_t getId() { return id; };
+        id_t getId() { return id; };
 
-    glm::vec3 color {};
-    TransformComponent transform {};
+        glm::vec3 color {};
+        TransformComponent transform {};
 
-    // Optional pointer components
-    std::shared_ptr<EngineModel> model {};
-    std::unique_ptr<PointLightComponent> pointLight = nullptr;
+        // Optional pointer components
+        std::shared_ptr<EngineModel> model {};
+        std::unique_ptr<PointLightComponent> pointLight = nullptr;
 
     private:
         EngineGameObject(id_t objID) : id{objID} {}
