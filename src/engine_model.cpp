@@ -211,14 +211,11 @@ namespace engine {
     }
 
     void EngineModel::Builder::loadNoise (int sizeX, int sizeY, const std::string& encodedNoise) {
-        spdlog::info ("creating noise function");
         FastNoise::SmartNode<> fnGenerator = FastNoise::NewFromEncodedNodeTree (encodedNoise.c_str());
 
         std::vector<float> noiseOutput(sizeX * sizeY);
 
-        spdlog::info ("starting noise generation");
         fnGenerator->GenUniformGrid2D (noiseOutput.data(), 0, 0, sizeX, sizeY, 0.2, 1337);
-        spdlog::info ("finished noise generation");
 
         vertices.clear();
         indices.clear();
