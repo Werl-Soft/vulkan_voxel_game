@@ -25,7 +25,7 @@ namespace engine {
         std::ifstream file(filepath, std::ios::ate | std::ios::binary);
 
         if (!file.is_open()) {
-            spdlog::critical ("Failed to open file: {}'", filepath);
+            spdlog::get("vulkan")->critical ("Failed to open file: {}'", filepath);
             throw std::runtime_error ("failed to open file: !" + filepath);
         }
 
@@ -99,6 +99,7 @@ namespace engine {
         pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
         if (vkCreateGraphicsPipelines (engineDevice.device(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) != VK_SUCCESS) {
+            spdlog::get("vulkan")->critical("Failed to create graphics pipeline");
             throw std::runtime_error ("Failed to create graphics pipeline");
         }
     }
@@ -111,7 +112,8 @@ namespace engine {
         createInfo.flags = 0;
 
         if (vkCreateShaderModule (engineDevice.device(), &createInfo, nullptr, shaderModule) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create shader module");
+            spdlog::get("vulkan")->critical("Failed to create shader module");
+            throw std::runtime_error("Failed to create shader module");
         }
     }
 

@@ -15,17 +15,21 @@ int main(int argc, char* argv[]) {
     auto fileSink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>("logs/log.txt", max_size, 5, true);
     fileSink->set_level (spdlog::level::trace);
 
-    spdlog::logger logger("main_out", {consoleSink, fileSink});
-    spdlog::register_logger (std::make_shared<spdlog::logger>(logger));
-    logger.set_level (spdlog::level::debug);
+    spdlog::logger logger("main", {consoleSink, fileSink});
     logger.enable_backtrace (32);
-    spdlog::set_default_logger (std::make_shared<spdlog::logger>(logger));
+    logger.set_level (spdlog::level::trace);
+    spdlog::register_logger (std::make_shared<spdlog::logger>(logger));
+    spdlog::set_default_logger (spdlog::get ("main"));
 
-    engine::FirstApp app{};
+    spdlog::register_logger (spdlog::get ("main")->clone ("vulkan"));
+    spdlog::register_logger (spdlog::get ("main")->clone ("renderer"));
+    spdlog::register_logger (spdlog::get ("main")->clone ("assets"));
 
     try {
         logger.info("Starting Application");
-        app.run ();
+        engine::FirstApp app{};
+
+        app.run();
         logger.info ("Stopping Application");
     } catch (std::exception& e) {
         logger.critical ("Application Crashed: {}", e.what ());

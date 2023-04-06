@@ -15,6 +15,8 @@
 
 #include <spdlog/spdlog.h>
 
+#include <FastNoise/FastNoise.h>
+
 //std
 #include <cassert>
 #include <unordered_map>
@@ -54,7 +56,6 @@ namespace engine {
     EngineModel::EngineModel (EngineDevice &device, const Builder &builder): engineDevice {device} {
         createVertexBuffer (builder.vertices);
         createIndexBuffer (builder.indices);
-
     }
 
     EngineModel::~EngineModel () = default;
@@ -138,7 +139,14 @@ namespace engine {
     std::unique_ptr<EngineModel> EngineModel::createModelFromFile (EngineDevice &device, const std::string &filepath) {
         Builder builder{};
         builder.loadModel (filepath);
-        spdlog::info ("Vertex Count: {}", builder.vertices.size());
+        spdlog::get ("assets")->info ("Vertex Count: {}", builder.vertices.size());
+        return std::make_unique<EngineModel>(device, builder);
+    }
+
+    std::unique_ptr<EngineModel> EngineModel::createModelFromNoise (EngineDevice &device, int xSize, int zSize) {
+        Builder builder{};
+        builder.loadNoise (xSize, zSize);
+        spdlog::get ("assets")->info ("Vertex Count: {}", builder.vertices.size());
         return std::make_unique<EngineModel>(device, builder);
     }
 
@@ -149,7 +157,7 @@ namespace engine {
         std::string warn, err;
 
         if (!tinyobj::LoadObj (&attrib, &shapes, &materials, &warn, &err, filepath.c_str())) {
-            spdlog::error ("Failed to load \"{}\" because: {} {}", filepath, warn, err);
+            spdlog::get ("assets")->error ("Failed to load \"{}\" because: {} {}", filepath, warn, err);
         }
 
         vertices.clear();
@@ -196,5 +204,45 @@ namespace engine {
                 indices.push_back (uniqueVerts[vertex]);
             }
         }
+    }
+
+    void EngineModel::Builder::loadNoise (int sizeX, int sizeY) {
+        loadNoise (sizeX, sizeY, "DQAFAAAAAAAAQAgAAAAAAD8AAAAAAA==");
+    }
+
+    void EngineModel::Builder::loadNoise (int sizeX, int sizeY, const std::string& encodedNoise) {
+        FastNoise::SmartNode<> fnGenerator = FastNoise::NewFromEncodedNodeTree (encodedNoise.c_str());
+
+        std::vector<float> noiseOutput(sizeX * sizeY);
+
+        fnGenerator->GenUniformGrid2D (noiseOutput.data(), 0, 0, sizeX, sizeY, 0.2, 1337);
+
+        vertices.clear();
+        indices.clear();
+
+        int index = 0;
+        for (int x = 0; x < sizeX; x++) {
+            for (int y = 0; y < sizeY; y++) {
+                Vertex vertex{};
+
+                vertex.position = {x, noiseOutput[index++], y};
+                vertex.color = {1.0f, 1.0f, 1.0f};
+                vertex.normal = glm::vec3(0.0f, 0.0f, 1.0f);
+
+                vertices.push_back (vertex);
+
+                if (x == sizeX - 1 || y == sizeY - 1) {
+                    continue;
+                }
+
+                indices.push_back (sizeX * x + y);
+                indices.push_back (sizeX * x + y + 1);
+                indices.push_back (sizeX * (x + 1) + y + 1);
+                indices.push_back (sizeX * (x + 1) + y + 1);
+                indices.push_back (sizeX * (x + 1) + y);
+                indices.push_back (sizeX * x + y);
+            }
+        }
+
     }
 } // engine

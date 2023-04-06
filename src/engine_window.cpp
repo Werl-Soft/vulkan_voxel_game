@@ -20,7 +20,22 @@ namespace engine {
     }
 
     void EngineWindow::initWindow () {
-        glfwInit();
+
+        int major, minor, rev;
+        glfwGetVersion (&major, &minor, &rev);
+        if (major < 3 || minor < 2) {
+            spdlog::critical("GLFW version {}.{}.{} is not supported, please install at least 3.2", major, minor, rev);
+            throw std::runtime_error ("GLFW version too old, please use at least 3.2");
+        }
+        if (major > 3) {
+            spdlog::warn ("GLFW version {}.{}.{} is unsupported, things may not work as intended", major, minor, rev);
+        }
+
+        glfwSetErrorCallback (glfwErrorCallback);
+        if (glfwInit() != GLFW_TRUE) {
+            spdlog::critical("GLFW failed to initialize");
+            throw std::runtime_error("GLFW failed to initialize");
+        }
         glfwWindowHint (GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint (GLFW_RESIZABLE, GLFW_TRUE);
 
@@ -35,7 +50,8 @@ namespace engine {
 
     void EngineWindow::createWindowSurface (VkInstance instance, VkSurfaceKHR *surface) {
         if (glfwCreateWindowSurface (instance, window, nullptr, surface) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create window surface");
+            spdlog::critical ("Failed to create window surface");
+            throw std::runtime_error("Failed to create window surface");
         }
     }
 
@@ -44,5 +60,9 @@ namespace engine {
         engineWindow->framebufferResized = true;
         engineWindow->width = width;
         engineWindow->height = height;
+    }
+
+    void EngineWindow::glfwErrorCallback (int error_code, const char *description) {
+        spdlog::error ("GLFW Error [{}]: {}", error_code, description);
     }
 }

@@ -5,6 +5,7 @@
 #ifndef BASIC_TESTS_ENGINE_WINDOW_HPP
 #define BASIC_TESTS_ENGINE_WINDOW_HPP
 
+#define GLFW_INCLUDE_NONE
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
@@ -21,10 +22,10 @@ namespace engine {
         EngineWindow &operator=(const EngineWindow &) = delete;
 
         bool shouldClose ();
-        VkExtent2D getExtent() { return {static_cast<uint32_t>(width), static_cast<uint32_t>(height)}; }
-        bool wasWindowResized() { return framebufferResized; }
+        [[nodiscard]] VkExtent2D getExtent() const { return {static_cast<uint32_t>(width), static_cast<uint32_t>(height)}; }
+        [[nodiscard]] bool wasWindowResized() const { return framebufferResized; }
         void resetWindowResizedFlag() { framebufferResized = false; }
-        GLFWwindow *getGLFWwindow() const { return window; }
+        [[nodiscard]] GLFWwindow *getGLFWwindow() const { return window; }
 
         void createWindowSurface(VkInstance instance, VkSurfaceKHR *surface);
 
@@ -37,6 +38,7 @@ namespace engine {
         GLFWwindow *window;
 
         static void framebufferResizedCallback (GLFWwindow *window, int width, int height);
+        static void glfwErrorCallback(int error_code, const char* description);
         void initWindow();
 
     };

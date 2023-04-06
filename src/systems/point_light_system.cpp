@@ -13,6 +13,7 @@
 
 #include <chrono>
 #include <iostream>
+#include <spdlog/spdlog.h>
 
 namespace engine::system {
 
@@ -47,6 +48,7 @@ namespace engine::system {
         pipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
 
         if (vkCreatePipelineLayout (engineDevice.device(), &pipelineLayoutCreateInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
+            spdlog::get ("vulkan")->critical ("Failed to create pipeline layout");
             throw std::runtime_error ("Failed to create pipeline layout!");
         }
 

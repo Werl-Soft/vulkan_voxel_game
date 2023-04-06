@@ -19,7 +19,7 @@ namespace engine {
             VkDebugUtilsMessageTypeFlagsEXT messageType,
             const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
             void *pUserData) {
-        spdlog::get ("main_out")->error ("validation layer: {}", pCallbackData->pMessage);
+        spdlog::get ("vulkan")->error ("validation layer: {}", pCallbackData->pMessage);
 
         return VK_FALSE;
     }
@@ -75,16 +75,17 @@ namespace engine {
 
     void EngineDevice::createInstance() {
         if (enableValidationLayers && !checkValidationLayerSupport()) {
-            throw std::runtime_error("validation layers requested, but not available!");
+            spdlog::critical ("Validation layers requested, but not available");
+            throw std::runtime_error("Validation layers requested, but not available!");
         }
 
         VkApplicationInfo appInfo = {};
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-        appInfo.pApplicationName = "LittleVulkanEngine App";
+        appInfo.pApplicationName = "Werl Engine";
         appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
         appInfo.pEngineName = "No Engine";
         appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-        appInfo.apiVersion = VK_API_VERSION_1_0;
+        appInfo.apiVersion = VK_API_VERSION_1_3;
 
         VkInstanceCreateInfo createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -107,7 +108,8 @@ namespace engine {
         }
 
         if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create instance!");
+            spdlog::get ("vulkan")->critical ("Failed to create Vulkan instance");
+            throw std::runtime_error("Failed to create instance!");
         }
 
         hasGflwRequiredInstanceExtensions();
@@ -117,9 +119,10 @@ namespace engine {
         uint32_t deviceCount = 0;
         vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
         if (deviceCount == 0) {
-            throw std::runtime_error("failed to find GPUs with Vulkan support!");
+            spdlog::get ("vulkan")->critical ("Failed to find GPU with Vulkan support");
+            throw std::runtime_error("Failed to find GPUs with Vulkan support!");
         }
-        spdlog::get ("main_out")->info ("Device count: {}", deviceCount);
+        spdlog::get ("vulkan")->info ("Device count: {}", deviceCount);
         std::vector<VkPhysicalDevice> devices(deviceCount);
         vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
 
@@ -131,11 +134,12 @@ namespace engine {
         }
 
         if (physicalDevice == VK_NULL_HANDLE) {
-            throw std::runtime_error("failed to find a suitable GPU!");
+            spdlog::get ("vulkan")->critical ("Failed to find suitable GPU");
+            throw std::runtime_error("Failed to find a suitable GPU!");
         }
 
         vkGetPhysicalDeviceProperties(physicalDevice, &properties);
-        spdlog::get ("main_out")->info ("physical device: {}", properties.deviceName);
+        spdlog::get ("vulkan")->info ("physical device: {}", properties.deviceName);
     }
 
     void EngineDevice::createLogicalDevice() {
@@ -177,7 +181,8 @@ namespace engine {
         }
 
         if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &device_) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create logical device!");
+            spdlog::get ("vulkan")->critical ("Failed to create logical device");
+            throw std::runtime_error("Failed to create logical device!");
         }
 
         vkGetDeviceQueue(device_, indices.graphicsFamily, 0, &graphicsQueue_);
@@ -194,7 +199,8 @@ namespace engine {
                 VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
         if (vkCreateCommandPool(device_, &poolInfo, nullptr, &commandPool) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create command pool!");
+            spdlog::get ("vulkan")->critical ("Failed to create command pool");
+            throw std::runtime_error("Failed to create command pool!");
         }
     }
 
@@ -214,8 +220,7 @@ namespace engine {
         VkPhysicalDeviceFeatures supportedFeatures;
         vkGetPhysicalDeviceFeatures(device, &supportedFeatures);
 
-        return indices.isComplete() && extensionsSupported && swapChainAdequate &&
-               supportedFeatures.samplerAnisotropy;
+        return indices.isComplete() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
     }
 
     void EngineDevice::populateDebugMessengerCreateInfo(
@@ -229,11 +234,13 @@ namespace engine {
     }
 
     void EngineDevice::setupDebugMessenger() {
-        if (!enableValidationLayers) return;
+        if (!enableValidationLayers)
+            return;
         VkDebugUtilsMessengerCreateInfoEXT createInfo;
         populateDebugMessengerCreateInfo(createInfo);
         if (CreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessenger) != VK_SUCCESS) {
-            throw std::runtime_error("failed to set up debug messenger!");
+            spdlog::get ("vulkan")->critical ("Failed to setup debug messenger");
+            throw std::runtime_error("Failed to setup debug messenger!");
         }
     }
 
@@ -282,18 +289,19 @@ namespace engine {
         std::vector<VkExtensionProperties> extensions(extensionCount);
         vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
 
-        spdlog::get ("main_out")->info ("available extensions:");
+        spdlog::get ("vulkan")->trace ("available extensions:");
         std::unordered_set<std::string> available;
         for (const auto &extension : extensions) {
-            spdlog::get ("main_out")->info ("\t{}", extension.extensionName);
+            spdlog::get ("vulkan")->trace("\t{}", extension.extensionName);
             available.insert(extension.extensionName);
         }
 
-        spdlog::get ("main_out")->info ("required Extensions:");
+        spdlog::get ("vulkan")->trace ("required Extensions:");
         auto requiredExtensions = getRequiredExtensions();
         for (const auto &required : requiredExtensions) {
-            spdlog::get ("main_out")->info ("\t{}", required);
+            spdlog::get("vulkan")-> trace ("\t{}", required);
             if (available.find(required) == available.end()) {
+                spdlog::get ("vulkan")->critical ("Missing required GLFW extension: {}", required);
                 throw std::runtime_error("Missing required glfw extension");
             }
         }
@@ -389,7 +397,8 @@ namespace engine {
                 return format;
             }
         }
-        throw std::runtime_error("failed to find supported format!");
+        spdlog::get ("vulkan")->critical ("Failed to find supported format");
+        throw std::runtime_error("Failed to find supported format!");
     }
 
     uint32_t EngineDevice::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
@@ -402,7 +411,8 @@ namespace engine {
             }
         }
 
-        throw std::runtime_error("failed to find suitable memory type!");
+        spdlog::get ("vulkan")->critical ("Failed to find suitable memory type");
+        throw std::runtime_error("Failed to find suitable memory type!");
     }
 
     void EngineDevice::createBuffer(
@@ -418,7 +428,8 @@ namespace engine {
         bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
         if (vkCreateBuffer(device_, &bufferInfo, nullptr, &buffer) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create vertex buffer!");
+            spdlog::get ("vulkan")->critical ("Failed to create buffer");
+            throw std::runtime_error("Failed to create buffer!");
         }
 
         VkMemoryRequirements memRequirements;
@@ -430,7 +441,8 @@ namespace engine {
         allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
 
         if (vkAllocateMemory(device_, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS) {
-            throw std::runtime_error("failed to allocate vertex buffer memory!");
+            spdlog::get ("vulkan")->critical ("Failed to allocate buffer memory");
+            throw std::runtime_error("Failed to allocate buffer memory!");
         }
 
         vkBindBufferMemory(device_, buffer, bufferMemory, 0);
@@ -513,6 +525,7 @@ namespace engine {
             VkImage &image,
             VkDeviceMemory &imageMemory) {
         if (vkCreateImage(device_, &imageInfo, nullptr, &image) != VK_SUCCESS) {
+            spdlog::get ("vulkan")->critical ("Failed to create image");
             throw std::runtime_error("failed to create image!");
         }
 
@@ -525,11 +538,13 @@ namespace engine {
         allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
 
         if (vkAllocateMemory(device_, &allocInfo, nullptr, &imageMemory) != VK_SUCCESS) {
-            throw std::runtime_error("failed to allocate image memory!");
+            spdlog::get ("vulkan")->critical ("Failed to allocate image memory");
+            throw std::runtime_error("Failed to allocate image memory!");
         }
 
         if (vkBindImageMemory(device_, image, imageMemory, 0) != VK_SUCCESS) {
-            throw std::runtime_error("failed to bind image memory!");
+            spdlog::get ("vulkan")->critical ("Failed to bind image memory");
+            throw std::runtime_error("Failed to bind image memory!");
         }
     }
 

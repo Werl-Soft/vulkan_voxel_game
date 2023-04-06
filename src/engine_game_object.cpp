@@ -15,9 +15,9 @@ namespace engine {
         return glm::mat4{
                 {
                         scale.x * (c1 * c3 + s1 * s2 * s3),
-                                scale.x * (c2 * s3),
-                                scale.x * (c1 * s2 * s3 - c3 * s1),
-                                0.0f,
+                        scale.x * (c2 * s3),
+                        scale.x * (c1 * s2 * s3 - c3 * s1),
+                        0.0f,
                 },
                 {
                         scale.y * (c3 * s1 * s2 - c1 * s3),

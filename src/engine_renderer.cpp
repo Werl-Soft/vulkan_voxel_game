@@ -3,6 +3,7 @@
 //
 
 #include <array>
+#include <spdlog/spdlog.h>
 #include "engine_renderer.hpp"
 
 namespace engine {
@@ -25,6 +26,7 @@ namespace engine {
         allocInfo.commandBufferCount = static_cast<uint32_t> (commandBuffers.size());
 
         if (vkAllocateCommandBuffers (engineDevice.device(), &allocInfo, commandBuffers.data()) != VK_SUCCESS) {
+            spdlog::get ("vulkan")->critical ("Failed to allocate command buffers");
             throw std::runtime_error("Failed to allocate command buffers");
         }
     }
@@ -39,6 +41,7 @@ namespace engine {
     }
 
     void EngineRenderer::recreateSwapChain () {
+        spdlog::get ("vulkan")->trace ("Starting: RecreateSwapChain");
         auto extent = engineWindow.getExtent();
 
         while (extent.width == 0 || extent.height == 0) {
@@ -54,13 +57,14 @@ namespace engine {
             engineSwapChain = std::make_unique<EngineSwapChain>(engineDevice, extent, oldSwapChain);
 
             if(!oldSwapChain->compareSwapFormats (*engineSwapChain)) {
+                spdlog::get ("renderer")->critical ("Swap chain image (or depth) format has changed");
                 throw std::runtime_error ("Swap chain image (or depth) format has changed!");
             }
         }
+        spdlog::get ("vulkan")->trace ("Finished: RecreateSwapChain");
     }
 
     VkCommandBuffer EngineRenderer::beginFrame () {
-
         assert(!isFrameStarted && "Can't call beginFrame while already in progress");
 
         auto result = engineSwapChain->acquireNextImage (&currentImageIndex);
@@ -71,6 +75,7 @@ namespace engine {
         }
 
         if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
+            spdlog::get ("renderer")->critical ("Failed to acquire swap chain image");
             throw std::runtime_error("Failed to acquire swap chain image");
         }
 
@@ -81,7 +86,8 @@ namespace engine {
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
         if (vkBeginCommandBuffer (commandBuffer, &beginInfo) != VK_SUCCESS) {
-            throw std::runtime_error ("failed to begin recording command buffer");
+            spdlog::critical ("Failed to begin recording command buffer");
+            throw std::runtime_error ("Failed to begin recording command buffer");
         }
         return commandBuffer;
     }
@@ -91,6 +97,7 @@ namespace engine {
         auto commandBuffer = getCurrentCommandBuffer();
 
         if (vkEndCommandBuffer (commandBuffer) != VK_SUCCESS) {
+            spdlog::get ("renderer")->critical ("Failed to record command buffer");
             throw std::runtime_error("Failed to record command buffer!");
         }
 
@@ -99,7 +106,8 @@ namespace engine {
             engineWindow.resetWindowResizedFlag();
             recreateSwapChain();
         } else if (result != VK_SUCCESS) {
-            throw std::runtime_error("failed to present swap chain image!");
+            spdlog::get ("renderer")->critical ("Failed to present swap chain image");
+            throw std::runtime_error("Failed to present swap chain image!");
         }
         isFrameStarted = false;
         currentFrameIndex = (currentFrameIndex + 1) % EngineSwapChain::MAX_FRAMES_IN_FLIGHT;

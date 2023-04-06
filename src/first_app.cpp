@@ -7,6 +7,7 @@
 #include "systems/point_light_system.hpp"
 #include "engine_camera.hpp"
 #include "keyboard_movement_controller.hpp"
+#include "engine_texture.hpp"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -41,14 +42,23 @@ namespace engine {
 
         auto globalSetLayout = EngineDescriptorSetLayout::Builder(engineDevice)
                 .addBinding (0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS)
+                .addBinding (1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
                 .build();
+
+        EngineTexture texture = EngineTexture(engineDevice, "assets/textures/statue.jpg");
+
+        VkDescriptorImageInfo imageInfo {};
+        imageInfo.sampler = texture.getSampler();
+        imageInfo.imageView = texture.getImageView();
+        imageInfo.imageLayout = texture.getImageLayout();
 
         std::vector<VkDescriptorSet> globalDescriptorSets (EngineSwapChain::MAX_FRAMES_IN_FLIGHT);
         for (int i = 0; i < globalDescriptorSets.size(); i++) {
             auto bufferInfo = uboBuffers[i]->descriptorInfo ();
             EngineDescriptorWriter(*globalSetLayout, *globalPool)
-            .writeBuffer (0, &bufferInfo)
-            .build (globalDescriptorSets[i]);
+                .writeBuffer (0, &bufferInfo)
+                .writeImage (1, &imageInfo)
+                .build (globalDescriptorSets[i]);
         }
 
         system::SimpleRenderSystem simpleRenderSystem{engineDevice, engineRenderer.getSwapchainRenderpass(), globalSetLayout->getDescriptorSetLayout()};
@@ -112,6 +122,7 @@ namespace engine {
         globalPool = EngineDescriptorPool::Builder(engineDevice)
                 .setMaxSets (EngineSwapChain::MAX_FRAMES_IN_FLIGHT)
                 .addPoolSize (VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, EngineSwapChain::MAX_FRAMES_IN_FLIGHT)
+                .addPoolSize (VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, EngineSwapChain::MAX_FRAMES_IN_FLIGHT)
                 .build();
         loadGameObjects ();
     }
@@ -133,11 +144,12 @@ namespace engine {
         flatVase.transform.scale = {3.0f, 1.5f, 3.0f};
         gameObjects.emplace(flatVase.getId(), std::move(flatVase));
 
-        engineModel = EngineModel::createModelFromFile (engineDevice, "assets/models/quad.obj");
+        //engineModel = EngineModel::createModelFromFile (engineDevice, "assets/models/quad.obj");
+        engineModel = EngineModel::createModelFromNoise (engineDevice, 16, 16);
         auto floor = EngineGameObject::createGameObject();
         floor.model = engineModel;
-        floor.transform.translation = {0.0f, 0.5f, 0.0f};
-        floor.transform.scale = {3.0f, 1.0f, 3.0f};
+        floor.transform.translation = {-8.0f, 0.5f, -2.0f};
+        floor.transform.scale = {1.0f, 1.0f, 1.0f};
         gameObjects.emplace(floor.getId(), std::move(floor));
 
         std::vector<glm::vec3> lightColors{
