@@ -1,6 +1,6 @@
 [submodule "libs/spdlog"]
 	path = libs/spdlog
-	url = git@github.com:gabime/spdlog.git
+	url = https://github.com/gabime/spdlog.git
 [submodule "libs/FastNoise2"]
 	path = libs/FastNoise2
-	url = git@github.com:Auburn/FastNoise2.git
+	url = https://github.com/Auburn/FastNoise2.git
