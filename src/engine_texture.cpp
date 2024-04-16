@@ -120,7 +120,7 @@ void engine::EngineTexture::transitionImageLayout (VkImageLayout oldLayout, VkIm
         sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
         destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
     } else {
-        spdlog::get ("vulkan")->critical ("Unsupported layout transition from {} to {}", VkImageLayout(oldLayout), VkImageLayout(newLayout));
+        spdlog::get ("vulkan")->critical ("Unsupported layout transition from {} to {}");//, VkImageLayout(oldLayout), VkImageLayout(newLayout));
         throw std::runtime_error ("unsupported layout transition");
     }
 

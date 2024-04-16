@@ -10,7 +10,7 @@ find_package(Vulkan REQUIRED)
 find_package(glfw3 3.3 REQUIRED)
 
 # Find spdlog
-add_subdirectory(libs/spdlog)
+find_package(spdlog CONFIG REQUIRED)
 
 # Find Boost
 #find_package(Boost 1.76 REQUIRED COMPONENTS system container)
@@ -25,6 +25,12 @@ find_package(nlohmann_json 3.11 REQUIRED)
 set(FASTNOISE2_NOISETOOL OFF CACHE BOOL "Build Noise Tool" FORCE)
 add_subdirectory(libs/FastNoise2)
 
+# Find Stb
+find_package(Stb REQUIRED)
+
+# Find tinyobjloader
+find_package(tinyobjloader CONFIG REQUIRED)
+
 # Find Others
 include_directories(libs/other/include)
 
@@ -36,6 +42,10 @@ add_dependencies(Engine_App BuildShaders CopyAssets)
 target_link_libraries(Engine_App PRIVATE Vulkan::Vulkan nlohmann_json::nlohmann_json FastNoise)
 target_link_libraries(Engine_App PRIVATE glfw glm)
 target_link_libraries(Engine_App PRIVATE spdlog::spdlog)
+
+target_include_directories(Engine_App PRIVATE ${Stb_INCLUDE_DIR})
+target_link_libraries(Engine_App PRIVATE tinyobjloader::tinyobjloader)
+
 
 add_custom_target(MakeDirectoryStructure
         COMMAND ${CMAKE_COMMAND} -E make_directory assets
@@ -60,15 +70,12 @@ foreach(GLSL ${GLSL_SOURCE_FILES})
     add_custom_command(
             OUTPUT ${SPIRV}
             COMMAND glslc ${GLSL} -o ${SPIRV}
-            DEPENDS ${GLSL}
-            BYPRODUCTS ${SPIRV})
+            DEPENDS ${GLSL})
     list(APPEND SPIRV_BINARY_FILES ${SPIRV})
+    message(INFO "Created ${FILE_NAME}.spv at ${SPIRV}")
 endforeach(GLSL)
 
 add_custom_target(BuildShaders DEPENDS ${SPIRV_BINARY_FILES})
 add_dependencies(BuildShaders MakeDirectoryStructure)
 
 # Copy dynamic libs
-add_custom_command(TARGET Engine_App POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_RUNTIME_DLLS:Engine_App> $<TARGET_FILE_DIR:Engine_App>
-        COMMAND_EXPAND_LISTS)

@@ -1,0 +1,36 @@
+{
+  "name" : "vulkanengine",
+  "version-string" : "1.0.0",
+  "builtin-baseline" : "1b2372fdd420185c6f516541b81228c55061dca4",
+  "dependencies" : [ {
+    "name" : "glfw3",
+    "version>=" : "3.4"
+  }, {
+    "name" : "vcpkg-cmake-config",
+    "version>=" : "2022-02-06#1"
+  }, {
+    "name" : "vcpkg-cmake",
+    "version>=" : "2023-05-04"
+  }, {
+    "name" : "glm",
+    "version>=" : "1.0.1#2"
+  }, {
+    "name" : "nlohmann-json",
+    "version>=" : "3.11.3"
+  }, {
+    "name" : "spdlog",
+    "version>=" : "1.13.0#1"
+  }, {
+    "name" : "tinyobjloader",
+    "version>=" : "2.0.0rc13"
+  }, {
+    "name" : "earcut-hpp",
+    "version>=" : "2.2.4"
+  }, {
+    "name" : "vulkan-sdk-components",
+    "version>=" : "1.3.280.0"
+  }, {
+    "name" : "stb",
+    "version>=" : "2023-04-11#1"
+  } ]
+}
