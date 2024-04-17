@@ -25,11 +25,11 @@ And much more
 * AMD Ryzen 9 3900x
 * Intel i7-10750H
 ## Libraries Used
-* [FastNoise2 0.9.7](https://github.com/Auburn/FastNoise2) (submodule)
-* [GLFW 3](https://www.glfw.org/) (VCPKG)
-* [GLM](https://github.com/g-truc/glm) (VCPKG)
-* [json](https://github.com/nlohmann/json) (VCPKG)
-* [spdlog 1.11.0](https://github.com/gabime/spdlog) (VCPKG)
-* [STB Image 2.27](https://github.com/nothings/stb) (VCPKG)
-* [tinyobjloader 2.0.0](https://github.com/tinyobjloader/tinyobjloader) (VCPKG)
-* [Vulkan](https://www.khronos.org/vulkan/): Tested with SDK 1.3.275.0
+* [FastNoise2 0.10.0](https://github.com/Auburn/FastNoise2) (submodule)
+* [GLFW 3.4](https://www.glfw.org/) (VCPKG)
+* [GLM 1.0.1](https://github.com/g-truc/glm) (VCPKG)
+* [json 3.11.3](https://github.com/nlohmann/json) (VCPKG)
+* [spdlog 1.13.0](https://github.com/gabime/spdlog) (VCPKG)
+* [STB Image 2023-04-11](https://github.com/nothings/stb) (VCPKG)
+* [tinyobjloader 2.0.0RC13](https://github.com/tinyobjloader/tinyobjloader) (VCPKG)
+* [Vulkan](https://www.khronos.org/vulkan/): Tested with SDK 1.3.280.0
